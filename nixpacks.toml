@@ -1,0 +1,13 @@
+# Nixpacks build config for Railway
+# Pins Node 20 (LTS) so the build is reproducible
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm ci --prefer-offline --no-audit --progress=false"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"
