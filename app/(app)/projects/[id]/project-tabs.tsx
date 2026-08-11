@@ -203,23 +203,68 @@ function ExpensesTab({ side, projectId, expenses, categories, perms }: { side: "
               <div className="w-9 h-9 rounded-lg bg-white grid place-items-center text-violet-600 shrink-0">
                 <Activity size={16} />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="font-semibold text-slate-900 mb-1">Track your labour team</div>
-                <div className="text-sm text-slate-600 mb-2">Log every worker's role, hours, and rate. Total auto-calculates as <b>Hours × Rate</b>. Common roles below — tap to auto-fill the description.</div>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {LABOUR_PRESETS.map((role) => (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => {
-                        const input = document.querySelector<HTMLInputElement>('input[name="description"]');
-                        if (input) { input.value = role; input.focus(); }
-                      }}
-                      className="text-xs px-2.5 py-1 rounded-full bg-white border border-slate-200 hover:border-violet-400 hover:text-violet-700 text-slate-700 font-medium transition"
-                    >
-                      {role}
-                    </button>
-                  ))}
+                <div className="text-sm text-slate-600 mb-3">First pick <b>where</b> the labour is, then the <b>role</b>. Description auto-fills like <i>"On-site — Carpenter"</i>. Total = Hours × Rate.</div>
+
+                <div className="mb-3">
+                  <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500 mb-1.5">Location</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["At Workshop", "On Site"].map((loc) => (
+                      <button
+                        key={loc}
+                        type="button"
+                        data-loc={loc}
+                        onClick={(ev) => {
+                          const btn = ev.currentTarget;
+                          // Highlight the active location
+                          btn.parentElement?.querySelectorAll<HTMLButtonElement>("button[data-loc]").forEach((b) => {
+                            b.classList.remove("bg-violet-600", "text-white", "border-violet-600");
+                            b.classList.add("bg-white", "border-slate-200", "text-slate-700");
+                          });
+                          btn.classList.remove("bg-white", "border-slate-200", "text-slate-700");
+                          btn.classList.add("bg-violet-600", "text-white", "border-violet-600");
+                          // Remember it on the form for later chip clicks
+                          const form = btn.closest("form");
+                          if (form) form.dataset.location = loc;
+                          const input = document.querySelector<HTMLInputElement>('input[name="description"]');
+                          if (input) {
+                            const roleMatch = input.value.replace(/^(At Workshop|On Site)\s*—\s*/, "");
+                            input.value = `${loc} — ${roleMatch || ""}`.trim().replace(/—\s*$/, "").trim();
+                            input.focus();
+                          }
+                        }}
+                        className="text-xs px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 font-medium hover:border-violet-400 transition"
+                      >
+                        {loc}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500 mb-1.5">Role</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {LABOUR_PRESETS.map((role) => (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => {
+                          const input = document.querySelector<HTMLInputElement>('input[name="description"]');
+                          if (input) {
+                            // Look for active location button
+                            const form = input.closest("form") as HTMLFormElement | null;
+                            const loc = form?.dataset.location || "";
+                            input.value = loc ? `${loc} — ${role}` : role;
+                            input.focus();
+                          }
+                        }}
+                        className="text-xs px-2.5 py-1 rounded-full bg-white border border-slate-200 hover:border-violet-400 hover:text-violet-700 text-slate-700 font-medium transition"
+                      >
+                        {role}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

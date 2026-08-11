@@ -1,4 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+/**
+ * Client-safe permissions module.
+ * Pure types, permission-matrix function, and human labels.
+ * For the server-only `currentProfile()`, import from "@/lib/permissions-server".
+ */
 
 export type Role = "admin" | "coordinator" | "employee";
 export type AccessLevel = "full" | "edit" | "read" | "view";
@@ -20,39 +24,7 @@ export type PermKey =
   | "canAddExpense" | "canEnterPrice" | "canDeleteExpense"
   | "canManageUsers";
 
-export async function currentProfile(): Promise<CurrentProfile | null> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  // Try the full select including overrides (post-migration 0006)
-  const full = await supabase
-    .from("profiles")
-    .select("id, email, full_name, role, access_level, permissions_overrides")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (!full.error && full.data) return full.data as CurrentProfile;
-
-  // Fallback A: overrides column missing (pre-0006) — try without it
-  const mid = await supabase
-    .from("profiles")
-    .select("id, email, full_name, role, access_level")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (!mid.error && mid.data) return { ...(mid.data as any), permissions_overrides: {} } as CurrentProfile;
-
-  // Fallback B: access_level column also missing (pre-0005) — legacy select
-  const legacy = await supabase
-    .from("profiles")
-    .select("id, email, full_name, role")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (!legacy.error && legacy.data) {
-    const p = legacy.data as any;
-    return { ...p, access_level: p.role === "employee" ? "view" : "full", permissions_overrides: {} };
-  }
-  return null;
-}
+// currentProfile() moved to lib/permissions-server.ts (uses cookies() → server-only)
 
 /**
  * Permission matrix — combines role AND access_level:

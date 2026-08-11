@@ -2,7 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardBody, Badge, Button } from "@/components/ui";
 import { money, shortDate } from "@/lib/utils";
-import { currentProfile, permissions } from "@/lib/permissions";
+import { currentProfile } from "@/lib/permissions-server";
+import { permissions } from "@/lib/permissions";
 import { Plus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function ProjectsPage() {
   const supabase = createClient();
   const profile = await currentProfile();
-  const perms = permissions(profile?.role);
+  const perms = permissions(profile);
   const { data: projects } = await supabase
     .from("projects")
     .select("*, coordinator:coordinator_id(full_name)")

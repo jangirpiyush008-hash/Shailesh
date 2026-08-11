@@ -4,7 +4,8 @@ import { Card, CardBody } from "@/components/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { currentProfile, permissions } from "@/lib/permissions";
+import { currentProfile } from "@/lib/permissions-server";
+import { permissions } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 

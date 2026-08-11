@@ -7,14 +7,15 @@ import { money, shortDate } from "@/lib/utils";
 import { ArrowLeft, FileSpreadsheet, FileText, Presentation, DollarSign, TrendingUp, TrendingDown, Wallet, MessageCircle } from "lucide-react";
 import { ProjectTabs } from "./project-tabs";
 import { buildWhatsAppReport, whatsAppShareUrl } from "@/lib/whatsapp-report";
-import { currentProfile, permissions } from "@/lib/permissions";
+import { currentProfile } from "@/lib/permissions-server";
+import { permissions } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProjectDetail({ params }: { params: { id: string } }) {
   const supabase = createClient();
   const profile = await currentProfile();
-  const perms = permissions(profile?.role);
+  const perms = permissions(profile);
 
   const [{ data: project }, { data: expenses }, { data: cats }, { data: activity }] = await Promise.all([
     supabase.from("projects").select("*, coordinator:coordinator_id(full_name, email)").eq("id", params.id).single(),

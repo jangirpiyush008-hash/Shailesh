@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { currentProfile, permissions, permissions as computePerms, ACCESS_LEVEL_LABELS, PERM_GROUPS } from "@/lib/permissions";
+import { currentProfile } from "@/lib/permissions-server";
+import { permissions, permissions as computePerms, ACCESS_LEVEL_LABELS, PERM_GROUPS } from "@/lib/permissions";
 import { Card, CardBody } from "@/components/ui";
 import { UsersClient } from "./users-client";
 import { Users } from "lucide-react";

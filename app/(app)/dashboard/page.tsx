@@ -4,7 +4,8 @@ import { Card, CardBody, CardHeader, CardTitle, Button, Badge } from "@/componen
 import { KpiCard } from "@/components/kpi-card";
 import { RevenueTrend, ExpenseCategoryChart, StatusBar } from "@/components/dashboard-charts";
 import { money, shortDate } from "@/lib/utils";
-import { currentProfile, permissions } from "@/lib/permissions";
+import { currentProfile } from "@/lib/permissions-server";
+import { permissions } from "@/lib/permissions";
 import { Briefcase, TrendingUp, DollarSign, CheckCircle2, Clock, AlertTriangle, Plus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const supabase = createClient();
   const profile = await currentProfile();
-  const perms = permissions(profile?.role);
+  const perms = permissions(profile);
 
   const [{ data: projects }, { data: expenses }] = await Promise.all([
     supabase.from("projects").select("*").order("created_at", { ascending: false }),
