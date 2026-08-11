@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, FolderKanban, Settings, LogOut, Users, Presentation } from "lucide-react";
+import { LayoutDashboard, FolderKanban, LogOut, Presentation } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -9,7 +9,6 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/presentations", label: "Presentations", icon: Presentation },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar({ profile }: { profile: { full_name: string | null; email: string; role: string } | null }) {

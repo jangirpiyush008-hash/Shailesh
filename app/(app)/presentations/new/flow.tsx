@@ -33,20 +33,7 @@ type ParsedWorkbook = {
   context: string;
 };
 
-const THEMES = [
-  { name: "Chisel",       tag: "Bold, warm" },
-  { name: "Prism",        tag: "Vibrant, modern" },
-  { name: "Bespoke",      tag: "Clean corporate" },
-  { name: "Marine",       tag: "Deep blue" },
-  { name: "Peppermint",   tag: "Fresh, minimal" },
-  { name: "Sketch",       tag: "Hand-drawn" },
-  { name: "Steel",        tag: "Industrial" },
-  { name: "Chartreuse",   tag: "Bright energetic" },
-  { name: "Blueberry",    tag: "Playful" },
-  { name: "Terra Cotta",  tag: "Warm earth" },
-  { name: "Piano",        tag: "Elegant" },
-  { name: "Frozen",       tag: "Cool minimal" },
-];
+import { GAMMA_THEMES, GAMMA_CATEGORIES } from "@/lib/gamma";
 
 /* ---------------- Main flow ---------------- */
 export function NewPresentationFlow({
@@ -488,25 +475,64 @@ function Step3Generate({
   const isFailed = genStatus.status === "failed" || genStatus.error;
   const isRunning = genStatus.id && !isDone && !isFailed;
 
+  const [category, setCategory] = useState<string>("All");
+  const filtered = category === "All"
+    ? GAMMA_THEMES
+    : GAMMA_THEMES.filter((t) => t.category === category);
+
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Palette size={16} className="text-violet-600" /> Pick a theme</CardTitle></CardHeader>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2"><Palette size={16} className="text-violet-600" /> Pick a theme</CardTitle>
+          <span className="text-xs text-slate-500">{GAMMA_THEMES.length} Gamma themes</span>
+        </CardHeader>
         <CardBody>
+          {/* Category tabs */}
+          <div className="flex gap-2 overflow-x-auto mb-5 -mx-1 px-1 pb-1">
+            {["All", ...GAMMA_CATEGORIES].map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategory(c)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition",
+                  category === c
+                    ? "bg-violet-600 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {THEMES.map((t) => (
+            {filtered.map((t) => (
               <button
                 key={t.name}
                 type="button"
                 onClick={() => setTheme(t.name)}
                 className={cn(
-                  "text-left rounded-lg border-2 p-4 transition",
-                  theme === t.name ? "border-violet-600 bg-violet-50" : "border-slate-200 hover:border-slate-300"
+                  "text-left rounded-lg border-2 p-3 transition relative overflow-hidden",
+                  theme === t.name ? "border-violet-600 ring-2 ring-violet-200" : "border-slate-200 hover:border-slate-300"
                 )}
               >
-                <div className="h-16 rounded mb-3 shadow-inner" style={{ background: themeGradient(t.name) }} />
-                <div className="font-medium text-sm">{t.name}</div>
-                <div className="text-xs text-slate-500">{t.tag}</div>
+                {theme === t.name && (
+                  <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-violet-600 grid place-items-center z-10">
+                    <Check size={12} className="text-white" />
+                  </div>
+                )}
+                <div className="h-20 rounded-md mb-3 shadow-inner" style={{ background: t.gradient }} />
+                <div className="font-medium text-sm text-slate-900 truncate">{t.name}</div>
+                <div className="text-xs text-slate-500 truncate">{t.tag}</div>
+                {t.recommendedFor && (
+                  <div className="mt-1.5">
+                    <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                      ★ {t.recommendedFor}
+                    </span>
+                  </div>
+                )}
               </button>
             ))}
           </div>
@@ -519,7 +545,7 @@ function Step3Generate({
               </Select>
             </div>
             <div>
-              <Label>Theme</Label>
+              <Label>Selected theme</Label>
               <Input value={theme} disabled />
             </div>
           </div>
@@ -605,20 +631,3 @@ function projectData(p: Project): Record<string, any> {
   };
 }
 
-function themeGradient(name: string): string {
-  const map: Record<string, string> = {
-    Chisel:       "linear-gradient(135deg, #F59E0B, #D97706)",
-    Prism:        "linear-gradient(135deg, #7C3AED, #EC4899, #F59E0B)",
-    Bespoke:      "linear-gradient(135deg, #1F2937, #6B7280)",
-    Marine:       "linear-gradient(135deg, #0369A1, #0EA5E9)",
-    Peppermint:   "linear-gradient(135deg, #10B981, #6EE7B7)",
-    Sketch:       "linear-gradient(135deg, #E5E7EB, #FDE68A)",
-    Steel:        "linear-gradient(135deg, #475569, #94A3B8)",
-    Chartreuse:   "linear-gradient(135deg, #84CC16, #FACC15)",
-    Blueberry:    "linear-gradient(135deg, #6366F1, #A78BFA)",
-    "Terra Cotta":"linear-gradient(135deg, #DC2626, #F97316)",
-    Piano:        "linear-gradient(135deg, #111827, #374151)",
-    Frozen:       "linear-gradient(135deg, #DBEAFE, #93C5FD)",
-  };
-  return map[name] ?? "linear-gradient(135deg, #7C3AED, #F43F5E)";
-}

@@ -112,18 +112,61 @@ export function outlineToText(outline: {
   return lines.join("\n").trim();
 }
 
-/** Preset Gamma themes the picker exposes. Full list is much larger; these are safe defaults. */
-export const GAMMA_THEMES = [
-  { name: "Chisel",       tag: "Bold, warm" },
-  { name: "Prism",        tag: "Vibrant, modern" },
-  { name: "Bespoke",      tag: "Clean corporate" },
-  { name: "Marine",       tag: "Deep blue, professional" },
-  { name: "Peppermint",   tag: "Fresh, minimal" },
-  { name: "Sketch",       tag: "Hand-drawn casual" },
-  { name: "Steel",        tag: "Industrial, muted" },
-  { name: "Chartreuse",   tag: "Bright, energetic" },
-  { name: "Blueberry",    tag: "Playful gradient" },
-  { name: "Terra Cotta",  tag: "Warm earth tones" },
-  { name: "Piano",        tag: "Elegant, formal" },
-  { name: "Frozen",       tag: "Cool, minimal" },
+/** Curated Gamma themes — real theme names from Gamma's catalog, grouped by category. */
+export type GammaTheme = {
+  name: string;
+  tag: string;
+  category: "Corporate" | "Vibrant" | "Minimal" | "Warm" | "Cool" | "Creative" | "Dark";
+  gradient: string;              // CSS gradient for the picker preview
+  recommendedFor?: string;
+};
+
+export const GAMMA_THEMES: GammaTheme[] = [
+  // ---------- Corporate ----------
+  { name: "Bespoke",     tag: "Clean corporate",     category: "Corporate", gradient: "linear-gradient(135deg, #1F2937 0%, #4B5563 100%)", recommendedFor: "Client pitches" },
+  { name: "Consultant",  tag: "Executive polish",    category: "Corporate", gradient: "linear-gradient(135deg, #0F172A 0%, #334155 100%)" },
+  { name: "Marine",      tag: "Deep blue authority", category: "Corporate", gradient: "linear-gradient(135deg, #0C4A6E 0%, #0EA5E9 100%)", recommendedFor: "Investor decks" },
+  { name: "Meridian",    tag: "Modern minimal",      category: "Corporate", gradient: "linear-gradient(135deg, #1E3A8A 0%, #6366F1 100%)" },
+  { name: "Steel",       tag: "Industrial muted",    category: "Corporate", gradient: "linear-gradient(135deg, #475569 0%, #94A3B8 100%)", recommendedFor: "Construction / fitout" },
+  { name: "Basalt",      tag: "Solid, weighty",      category: "Corporate", gradient: "linear-gradient(135deg, #292524 0%, #78716C 100%)" },
+
+  // ---------- Vibrant ----------
+  { name: "Prism",       tag: "Rainbow gradient",    category: "Vibrant",   gradient: "linear-gradient(135deg, #7C3AED 0%, #EC4899 50%, #F59E0B 100%)", recommendedFor: "Product launches" },
+  { name: "Chartreuse",  tag: "Bright & energetic",  category: "Vibrant",   gradient: "linear-gradient(135deg, #84CC16 0%, #FACC15 100%)" },
+  { name: "Peacock",     tag: "Rich teal & gold",    category: "Vibrant",   gradient: "linear-gradient(135deg, #0891B2 0%, #F59E0B 100%)" },
+  { name: "Cotton Candy",tag: "Soft dream pastels",  category: "Vibrant",   gradient: "linear-gradient(135deg, #F9A8D4 0%, #A5B4FC 100%)" },
+
+  // ---------- Warm ----------
+  { name: "Chisel",      tag: "Bold gold on stone",  category: "Warm",      gradient: "linear-gradient(135deg, #E6A817 0%, #D97706 100%)", recommendedFor: "SBJ brand match" },
+  { name: "Terra Cotta", tag: "Warm earth clay",     category: "Warm",      gradient: "linear-gradient(135deg, #DC2626 0%, #F97316 100%)" },
+  { name: "Coral",       tag: "Sun-kissed reef",     category: "Warm",      gradient: "linear-gradient(135deg, #FB7185 0%, #FDBA74 100%)" },
+  { name: "Vintage",     tag: "Aged paper tones",    category: "Warm",      gradient: "linear-gradient(135deg, #A16207 0%, #E7C39F 100%)" },
+  { name: "Rustic",      tag: "Earthy woodgrain",    category: "Warm",      gradient: "linear-gradient(135deg, #78350F 0%, #C2A377 100%)" },
+  { name: "Dune",        tag: "Desert sand & sky",   category: "Warm",      gradient: "linear-gradient(135deg, #F3E8CC 0%, #D6A15F 100%)" },
+
+  // ---------- Cool ----------
+  { name: "Peppermint",  tag: "Fresh mint & white",  category: "Cool",      gradient: "linear-gradient(135deg, #10B981 0%, #6EE7B7 100%)" },
+  { name: "Frost",       tag: "Icy pale minimal",    category: "Cool",      gradient: "linear-gradient(135deg, #DBEAFE 0%, #93C5FD 100%)" },
+  { name: "Icebreaker",  tag: "Arctic blue",         category: "Cool",      gradient: "linear-gradient(135deg, #E0F2FE 0%, #7DD3FC 100%)" },
+  { name: "Blueberry",   tag: "Deep playful purple", category: "Cool",      gradient: "linear-gradient(135deg, #6366F1 0%, #A78BFA 100%)" },
+
+  // ---------- Minimal ----------
+  { name: "Wireframe",   tag: "Pure structure",      category: "Minimal",   gradient: "linear-gradient(135deg, #F9FAFB 0%, #E5E7EB 100%)" },
+  { name: "Kraft",       tag: "Recycled paper",      category: "Minimal",   gradient: "linear-gradient(135deg, #F5EBD8 0%, #C8A97E 100%)" },
+  { name: "Newsprint",   tag: "Editorial b&w",       category: "Minimal",   gradient: "linear-gradient(135deg, #FAFAF9 0%, #A8A29E 100%)" },
+  { name: "Alabaster",   tag: "Warm off-white",      category: "Minimal",   gradient: "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)" },
+
+  // ---------- Creative ----------
+  { name: "Sketch",      tag: "Hand-drawn casual",   category: "Creative",  gradient: "linear-gradient(135deg, #FDE68A 0%, #F3F4F6 100%)" },
+  { name: "Almanac",     tag: "Journal illustrated", category: "Creative",  gradient: "linear-gradient(135deg, #F5EBD8 0%, #6B7280 100%)" },
+  { name: "Nomad",       tag: "Boho traveler",       category: "Creative",  gradient: "linear-gradient(135deg, #92400E 0%, #F59E0B 100%)" },
+
+  // ---------- Dark ----------
+  { name: "Piano",       tag: "Elegant midnight",    category: "Dark",      gradient: "linear-gradient(135deg, #111827 0%, #374151 100%)", recommendedFor: "Formal reports" },
+  { name: "Onyx",        tag: "Pure black premium",  category: "Dark",      gradient: "linear-gradient(135deg, #000000 0%, #52525B 100%)" },
+  { name: "Nightsky",    tag: "Deep space navy",     category: "Dark",      gradient: "linear-gradient(135deg, #0F172A 0%, #6366F1 100%)" },
+];
+
+export const GAMMA_CATEGORIES: GammaTheme["category"][] = [
+  "Corporate", "Vibrant", "Warm", "Cool", "Minimal", "Creative", "Dark",
 ];
