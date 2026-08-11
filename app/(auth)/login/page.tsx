@@ -1,5 +1,7 @@
 import { AuthForm } from "./auth-form";
 
+export const dynamic = "force-dynamic";
+
 export default function LoginPage() {
   return (
     <div className="min-h-screen grid place-items-center bg-gradient-to-br from-violet-50 via-white to-rose-50 px-4">

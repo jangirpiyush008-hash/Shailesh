@@ -1,6 +1,8 @@
 import { Card, CardBody, CardHeader, CardTitle, Badge } from "@/components/ui";
 import { Key, Sparkles, Presentation, Bot } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default function SettingsPage() {
   const integrations = [
     { name: "Gamma API", desc: "Auto-generate presentations from project data.", key: "GAMMA_API_KEY", icon: Presentation, status: "pending" as const },
