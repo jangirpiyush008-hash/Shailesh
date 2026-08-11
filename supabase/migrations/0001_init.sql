@@ -250,6 +250,7 @@ insert into public.expense_categories (name, side, color, sort_order) values
   ('Glass Work',     'left',  '#06B6D4', 45),
   ('Electric',       'left',  '#F43F5E', 50),
   ('Flooring Work',  'left',  '#8B5CF6', 55),
+  ('Carpet',         'left',  '#F97316', 58),
   ('Graphics',       'left',  '#EC4899', 60),
   ('Labour',         'right', '#7C3AED', 10),
   ('Vehicle',        'right', '#F59E0B', 20),
