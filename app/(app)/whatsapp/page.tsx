@@ -138,6 +138,72 @@ export default async function WhatsAppPage() {
         </CardBody>
       </Card>
 
+      {/* iPhone preview */}
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Smartphone size={16} className="text-emerald-600" /> Live preview — how it feels on your phone</CardTitle></CardHeader>
+        <CardBody>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+            {/* Phone 1 — Material entry */}
+            <IPhoneMock>
+              <WhatsAppHeader />
+              <div className="flex flex-col gap-1 px-3 py-3 flex-1 overflow-y-auto">
+                <BotBubble>Hi Manoj 👋 Send your project entry any time. I'll log it and reply with a confirmation.</BotBubble>
+                <TimestampDivider text="10:12" />
+                <UserBubble>JC415 material 25 sheets 18mm mdf @ 53 from danube</UserBubble>
+                <BotBubble>
+                  ✅ Saved <b>AED 1,325.00</b> to <b>SBJ-JC-26-415</b><br/>
+                  25 Sheet × 18mm MDF @ 53<br/>
+                  Vendor: Danube<br/>
+                  Materials total: AED 4,213.00
+                </BotBubble>
+              </div>
+            </IPhoneMock>
+
+            {/* Phone 2 — Labour entry (Hinglish) */}
+            <IPhoneMock>
+              <WhatsAppHeader />
+              <div className="flex flex-col gap-1 px-3 py-3 flex-1 overflow-y-auto">
+                <TimestampDivider text="Today 09:15" />
+                <UserBubble>jc415 on site 12 carpenter ne 216 hrs kaam kiya</UserBubble>
+                <BotBubble>
+                  ✅ Saved to Labour — SBJ-JC-26-415<br/>
+                  <span className="text-slate-500 text-xs">On Site — Carpenter · 12 NOS · 216 hrs</span><br/>
+                  <span className="text-amber-700 text-xs">Rate not set — admin will fill</span>
+                </BotBubble>
+                <TimestampDivider text="09:22" />
+                <UserBubble>jc415 breakfast 16 nos 6 aed</UserBubble>
+                <BotBubble>
+                  ✅ AED 96.00 → SBJ-JC-26-415<br/>
+                  Food · 16 breakfast × 6 AED
+                </BotBubble>
+              </div>
+            </IPhoneMock>
+
+            {/* Phone 3 — Bot handles ambiguity */}
+            <IPhoneMock>
+              <WhatsAppHeader />
+              <div className="flex flex-col gap-1 px-3 py-3 flex-1 overflow-y-auto">
+                <TimestampDivider text="14:32" />
+                <UserBubble>rain light job — 3ton truck 2 trip 130</UserBubble>
+                <BotBubble>
+                  I found 2 active Rain Light projects — which one?<br/>
+                  <span className="text-xs">1️⃣ SBJ-JC-26-415 (Agentic AI stand)</span><br/>
+                  <span className="text-xs">2️⃣ SBJ-JC-26-217 (Conrad Hotel booth)</span>
+                </BotBubble>
+                <UserBubble>1</UserBubble>
+                <BotBubble>
+                  ✅ AED 260.00 → SBJ-JC-26-415<br/>
+                  Vehicle · 3TON · 2 trips × 130
+                </BotBubble>
+              </div>
+            </IPhoneMock>
+          </div>
+          <div className="text-center text-xs text-slate-500 mt-6">
+            Coordinators and employees just type in their normal WhatsApp — the bot handles the rest.
+          </div>
+        </CardBody>
+      </Card>
+
       {/* A day in the life */}
       <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200">
         <CardHeader><CardTitle>A typical day, with the bot live</CardTitle></CardHeader>
@@ -327,6 +393,83 @@ function TimelineRow({ time, who, msg, result }: { time: string; who: string; ms
         <div className="text-sm text-slate-800 font-mono bg-white/60 rounded px-2 py-1 mt-0.5 inline-block">"{msg}"</div>
       </div>
       <div className="text-xs text-emerald-700 font-semibold pt-1 max-w-[240px] text-right">{result}</div>
+    </div>
+  );
+}
+
+/* -------------------- iPhone + WhatsApp mockup -------------------- */
+function IPhoneMock({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="w-[280px] h-[560px] rounded-[42px] bg-slate-900 p-2 shadow-2xl relative">
+      {/* Notch */}
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-6 bg-slate-900 rounded-b-2xl z-20" />
+      {/* Screen */}
+      <div className="w-full h-full rounded-[34px] bg-[#e5ddd5] overflow-hidden relative flex flex-col">
+        {/* iOS status bar */}
+        <div className="h-8 bg-[#128C7E] flex justify-between items-center px-6 text-white text-[10px] font-semibold">
+          <span>9:41</span>
+          <span className="flex gap-1 items-center">
+            <span>●●●</span>
+            <span>📶</span>
+            <span>🔋</span>
+          </span>
+        </div>
+        {children}
+        {/* Input bar (decorative) */}
+        <div className="h-12 bg-[#f0f0f0] border-t border-slate-300 flex items-center gap-2 px-2">
+          <div className="flex-1 h-8 rounded-full bg-white border border-slate-300 px-3 flex items-center text-xs text-slate-400">
+            Message
+          </div>
+          <div className="w-8 h-8 rounded-full bg-[#128C7E] grid place-items-center text-white text-xs">🎤</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WhatsAppHeader() {
+  return (
+    <div className="h-14 bg-[#128C7E] flex items-center gap-3 px-3 text-white shrink-0">
+      <span className="text-lg">‹</span>
+      <div className="w-9 h-9 rounded-full bg-white grid place-items-center overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/sbj-mark.png" alt="SBJ" className="w-full h-full object-contain" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold truncate">SBJ Technical Works</div>
+        <div className="text-[10px] opacity-80">online · verified business</div>
+      </div>
+      <span className="text-lg">📞</span>
+    </div>
+  );
+}
+
+function UserBubble({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[85%] bg-[#dcf8c6] rounded-lg rounded-tr-none px-3 py-1.5 text-[11px] text-slate-900 shadow-sm">
+        {children}
+        <div className="text-[9px] text-slate-500 text-right mt-0.5">10:42 ✓✓</div>
+      </div>
+    </div>
+  );
+}
+
+function BotBubble({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex justify-start">
+      <div className="max-w-[90%] bg-white rounded-lg rounded-tl-none px-3 py-1.5 text-[11px] text-slate-900 shadow-sm">
+        {children}
+        <div className="text-[9px] text-slate-400 text-right mt-0.5">10:42</div>
+      </div>
+    </div>
+  );
+}
+
+function TimestampDivider({ text }: { text: string }) {
+  return (
+    <div className="flex justify-center my-1">
+      <span className="text-[9px] bg-[#e1f3fb] text-slate-600 px-2 py-0.5 rounded-md shadow-sm">{text}</span>
     </div>
   );
 }
