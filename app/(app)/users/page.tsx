@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { currentProfile, permissions, ACCESS_LEVEL_LABELS } from "@/lib/permissions";
+import { currentProfile, permissions, permissions as computePerms, ACCESS_LEVEL_LABELS, PERM_GROUPS } from "@/lib/permissions";
 import { Card, CardBody } from "@/components/ui";
 import { UsersClient } from "./users-client";
 import { Users } from "lucide-react";
@@ -15,7 +15,7 @@ export default async function UsersPage() {
   const supabase = createClient();
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, access_level, created_at")
+    .select("id, email, full_name, role, access_level, permissions_overrides, created_at")
     .order("created_at", { ascending: false });
 
   const serviceKeySet = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -46,6 +46,7 @@ export default async function UsersPage() {
         currentUserId={me!.id}
         profiles={profiles ?? []}
         accessLevels={ACCESS_LEVEL_LABELS}
+        permGroups={PERM_GROUPS}
         serviceKeySet={serviceKeySet}
       />
     </div>

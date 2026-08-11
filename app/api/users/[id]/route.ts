@@ -18,6 +18,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (body.role && ["admin", "coordinator", "employee"].includes(body.role)) update.role = body.role;
   if (body.access_level && ["full", "edit", "read", "view"].includes(body.access_level)) update.access_level = body.access_level;
   if (typeof body.full_name === "string") update.full_name = body.full_name.trim();
+  if (body.permissions_overrides && typeof body.permissions_overrides === "object") {
+    // Only keep known permission keys with boolean values
+    const ALLOWED = new Set([
+      "canSeeRevenue","canSeeProfit","canSeeTotals","canSeeLinePrices",
+      "canSeeOverviewTab","canSeeReportsTab","canExportExcel","canGenerateReport",
+      "canCreateProject","canEditProject","canDeleteProject",
+      "canAddExpense","canEnterPrice","canDeleteExpense","canManageUsers",
+    ]);
+    const clean: Record<string, boolean> = {};
+    for (const [k, v] of Object.entries(body.permissions_overrides)) {
+      if (ALLOWED.has(k) && typeof v === "boolean") clean[k] = v;
+    }
+    update.permissions_overrides = clean;
+  }
   if (!Object.keys(update).length) return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
 
   let admin;

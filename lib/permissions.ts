@@ -9,24 +9,39 @@ export type CurrentProfile = {
   full_name: string | null;
   role: Role;
   access_level: AccessLevel;
+  permissions_overrides?: Partial<Record<PermKey, boolean>>;
 };
+
+export type PermKey =
+  | "canSeeRevenue" | "canSeeProfit" | "canSeeTotals" | "canSeeLinePrices"
+  | "canSeeOverviewTab" | "canSeeReportsTab"
+  | "canExportExcel" | "canGenerateReport"
+  | "canCreateProject" | "canEditProject" | "canDeleteProject"
+  | "canAddExpense" | "canEnterPrice" | "canDeleteExpense"
+  | "canManageUsers";
 
 export async function currentProfile(): Promise<CurrentProfile | null> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Try the full select including access_level (post-migration 0005)
+  // Try the full select including overrides (post-migration 0006)
   const full = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, access_level")
+    .select("id, email, full_name, role, access_level, permissions_overrides")
     .eq("id", user.id)
     .maybeSingle();
   if (!full.error && full.data) return full.data as CurrentProfile;
 
-  // Fallback: access_level column doesn't exist yet — read the legacy shape
-  // and pick a sensible access_level based on role so the app still works
-  // before the admin runs migration 0005.
+  // Fallback A: overrides column missing (pre-0006) — try without it
+  const mid = await supabase
+    .from("profiles")
+    .select("id, email, full_name, role, access_level")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!mid.error && mid.data) return { ...(mid.data as any), permissions_overrides: {} } as CurrentProfile;
+
+  // Fallback B: access_level column also missing (pre-0005) — legacy select
   const legacy = await supabase
     .from("profiles")
     .select("id, email, full_name, role")
@@ -34,7 +49,7 @@ export async function currentProfile(): Promise<CurrentProfile | null> {
     .maybeSingle();
   if (!legacy.error && legacy.data) {
     const p = legacy.data as any;
-    return { ...p, access_level: p.role === "employee" ? "view" : "full" };
+    return { ...p, access_level: p.role === "employee" ? "view" : "full", permissions_overrides: {} };
   }
   return null;
 }
@@ -80,9 +95,10 @@ export type Perms = {
   canManageUsers: boolean;
 };
 
-export function permissions(profile: { role?: Role | null; access_level?: AccessLevel | null } | null | undefined): Perms {
+export function permissions(profile: { role?: Role | null; access_level?: AccessLevel | null; permissions_overrides?: Partial<Record<PermKey, boolean>> } | null | undefined): Perms {
   const role  = (profile?.role ?? null) as Role | null;
   const level = (profile?.access_level ?? "full") as AccessLevel;
+  const overrides = (profile?.permissions_overrides ?? {}) as Partial<Record<PermKey, boolean>>;
 
   const isAdmin       = role === "admin";
   const isCoordinator = role === "coordinator";
@@ -145,8 +161,64 @@ export function permissions(profile: { role?: Role | null; access_level?: Access
     }
   }
 
-  return base;   // no auth → nothing
+  return applyOverrides(base, overrides);
 }
+
+/** Apply any per-user overrides on top of the computed base permissions. */
+function applyOverrides(base: Perms, overrides: Partial<Record<PermKey, boolean>>): Perms {
+  const out: any = { ...base };
+  for (const k of Object.keys(overrides) as PermKey[]) {
+    if (typeof overrides[k] === "boolean") out[k] = overrides[k];
+  }
+  return out as Perms;
+}
+
+/** Human-friendly labels for the permission-toggle UI, grouped by section. */
+export const PERM_GROUPS: {
+  section: string;
+  keys: { key: PermKey; label: string; hint?: string }[];
+}[] = [
+  {
+    section: "Financial visibility",
+    keys: [
+      { key: "canSeeRevenue",     label: "See project revenue (value)" },
+      { key: "canSeeProfit",      label: "See net profit" },
+      { key: "canSeeTotals",      label: "See total cost (aggregates)" },
+      { key: "canSeeLinePrices",  label: "See per-row prices (unit rate + total)" },
+      { key: "canSeeOverviewTab", label: "See Overview tab (cost summary)" },
+      { key: "canSeeReportsTab",  label: "See Reports tab (category breakdown)" },
+    ],
+  },
+  {
+    section: "Expense management",
+    keys: [
+      { key: "canAddExpense",     label: "Add new expenses" },
+      { key: "canEnterPrice",     label: "Enter prices when adding" },
+      { key: "canDeleteExpense",  label: "Delete expenses" },
+    ],
+  },
+  {
+    section: "Project management",
+    keys: [
+      { key: "canCreateProject",  label: "Create new projects" },
+      { key: "canEditProject",    label: "Edit project details" },
+      { key: "canDeleteProject",  label: "Delete projects" },
+    ],
+  },
+  {
+    section: "Exports & sharing",
+    keys: [
+      { key: "canExportExcel",    label: "Export Excel Job Card" },
+      { key: "canGenerateReport", label: "Generate WhatsApp / PPT reports" },
+    ],
+  },
+  {
+    section: "Administration",
+    keys: [
+      { key: "canManageUsers",    label: "Manage users & access" },
+    ],
+  },
+];
 
 export const ACCESS_LEVEL_LABELS: Record<AccessLevel, { label: string; desc: string }> = {
   full: { label: "Full",       desc: "Line prices · add · edit · delete · create projects" },
