@@ -214,12 +214,15 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
       <Card>
         <CardHeader><CardTitle>{side === "right" ? "Add labour entry" : "Add expense"}</CardTitle></CardHeader>
         <CardBody>
-          <form onSubmit={add} className="grid grid-cols-2 md:grid-cols-7 gap-3">
-            <div className="md:col-span-1">
+          <form onSubmit={add} className={cn(
+            "grid grid-cols-2 gap-3",
+            side === "right" ? "md:grid-cols-9" : "md:grid-cols-8"
+          )}>
+            <div>
               <Label>Date</Label>
               <Input type="date" name="entry_date" defaultValue={new Date().toISOString().slice(0, 10)} required />
             </div>
-            <div className="md:col-span-1">
+            <div>
               <Label>Category</Label>
               <Select name="category_id" required defaultValue="">
                 <option value="">—</option>
@@ -269,18 +272,23 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
                 value={rate} onChange={(e) => setRate(Number(e.target.value || 0))}
               />
             </div>
-            <div className="md:col-span-2 col-span-2">
+            {/* Total — read-only, styled like the other inputs but green so it stands out */}
+            <div>
+              <Label className="text-emerald-700">Total</Label>
+              <div className="h-10 w-full rounded-lg border border-emerald-300 bg-emerald-50 px-3 flex items-center text-emerald-900 font-semibold tabular-nums text-sm">
+                {money(liveAmount)}
+              </div>
+            </div>
+
+            <div className="md:col-span-4 col-span-2">
               <Label>Vendor / notes</Label>
               <Input name="vendor" />
             </div>
-            <div className="col-span-2 md:col-span-7 flex justify-between items-center mt-2 gap-3 flex-wrap">
-              <div className="inline-flex items-center gap-3 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-2.5">
-                <span className="text-xs uppercase tracking-wider text-emerald-700 font-semibold">
-                  Total {side === "right" && hours > 0 ? "(hrs × rate)" : "(qty × rate)"}
-                </span>
-                <span className="text-xl font-bold tabular-nums text-emerald-900">{money(liveAmount)}</span>
-              </div>
-              <Button type="submit" disabled={saving} className="bg-gradient-to-r from-violet-600 to-rose-500">
+            <div className={cn(
+              "col-span-2 flex justify-end items-end",
+              side === "right" ? "md:col-span-5" : "md:col-span-4"
+            )}>
+              <Button type="submit" disabled={saving} className="bg-gradient-to-r from-violet-600 to-rose-500 h-10">
                 {saving ? "Saving…" : (<><Plus size={16} /> Add expense</>)}
               </Button>
             </div>
