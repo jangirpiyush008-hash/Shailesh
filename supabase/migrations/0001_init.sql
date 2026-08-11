@@ -246,7 +246,7 @@ insert into public.expense_categories (name, side, color, sort_order) values
   ('Material',       'left',  '#7C3AED', 10),
   ('Transport',      'left',  '#F59E0B', 20),
   ('Food',           'left',  '#10B981', 30),
-  ('Printing',       'left',  '#0EA5E9', 40),
+  ('Paint Work',     'left',  '#0EA5E9', 40),
   ('Electric',       'left',  '#F43F5E', 50),
   ('Graphics',       'left',  '#8B5CF6', 60),
   ('Labour',         'right', '#7C3AED', 10),
