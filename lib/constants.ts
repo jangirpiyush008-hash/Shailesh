@@ -14,3 +14,18 @@ export const COORDINATOR_PRESETS = [
   "Naresh Jangir",
   "Prakash Jangir",
 ] as const;
+
+// Common labour types (right-side expenses) — used as quick-pick suggestions
+// so admin doesn't have to re-type Carpenter/Painter/etc every time.
+export const LABOUR_PRESETS = [
+  "Carpenter",
+  "Painter",
+  "Electrician",
+  "Helper",
+  "Driver",
+  "Loader",
+  "Fabricator",
+  "Welder",
+  "Foreman",
+  "Supervisor",
+] as const;

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardBody, CardHeader, CardTitle, Button, Input, Label, Select, Badge, Textarea } from "@/components/ui";
 import { money, shortDate, cn } from "@/lib/utils";
-import { UNITS } from "@/lib/constants";
+import { UNITS, LABOUR_PRESETS } from "@/lib/constants";
 import { Plus, Trash2, FileText, Activity } from "lucide-react";
 
 type Cat = { id: string; name: string; side: "left" | "right"; color: string };
@@ -12,11 +12,11 @@ type Exp = any;
 
 const TABS = [
   { id: "overview", label: "Overview" },
-  { id: "left", label: "Materials / Transport / Food" },
-  { id: "right", label: "Labour / Vehicle / Food" },
-  { id: "documents", label: "Documents" },
+  { id: "left",     label: "Materials" },
+  { id: "right",    label: "Labour" },
+  { id: "documents",label: "Documents" },
   { id: "timeline", label: "Timeline" },
-  { id: "reports", label: "Reports" },
+  { id: "reports",  label: "Reports" },
 ] as const;
 
 export function ProjectTabs({
@@ -181,8 +181,38 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
 
   return (
     <div className="space-y-6">
+      {side === "right" && (
+        <Card className="bg-gradient-to-r from-violet-50 to-rose-50 border-violet-200">
+          <CardBody className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-white grid place-items-center text-violet-600 shrink-0">
+                <Activity size={16} />
+              </div>
+              <div className="min-w-0">
+                <div className="font-semibold text-slate-900 mb-1">Track your labour team</div>
+                <div className="text-sm text-slate-600 mb-2">Log every worker's role, hours, and rate. Total auto-calculates as <b>Hours × Rate</b>. Common roles below — tap to auto-fill the description.</div>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {LABOUR_PRESETS.map((role) => (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => {
+                        const input = document.querySelector<HTMLInputElement>('input[name="description"]');
+                        if (input) { input.value = role; input.focus(); }
+                      }}
+                      className="text-xs px-2.5 py-1 rounded-full bg-white border border-slate-200 hover:border-violet-400 hover:text-violet-700 text-slate-700 font-medium transition"
+                    >
+                      {role}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      )}
       <Card>
-        <CardHeader><CardTitle>Add expense</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{side === "right" ? "Add labour entry" : "Add expense"}</CardTitle></CardHeader>
         <CardBody>
           <form onSubmit={add} className="grid grid-cols-2 md:grid-cols-7 gap-3">
             <div className="md:col-span-1">
@@ -198,7 +228,17 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
             </div>
             <div className="md:col-span-2 col-span-2">
               <Label>Description</Label>
-              <Input name="description" required placeholder={side === "left" ? "18mm MDF" : "Carpenter"} />
+              <Input
+                name="description"
+                required
+                placeholder={side === "left" ? "18mm MDF" : "Carpenter"}
+                list={side === "right" ? "labour-presets" : undefined}
+              />
+              {side === "right" && (
+                <datalist id="labour-presets">
+                  {LABOUR_PRESETS.map((l) => <option key={l} value={l} />)}
+                </datalist>
+              )}
             </div>
             <div>
               <Label>Unit</Label>
