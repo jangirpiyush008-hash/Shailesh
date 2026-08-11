@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardBody, CardHeader, CardTitle, Button, Input, Label, Select, Badge, Textarea } from "@/components/ui";
 import { money, shortDate, cn } from "@/lib/utils";
 import { UNITS, LABOUR_PRESETS } from "@/lib/constants";
-import { Plus, Trash2, FileText, Activity } from "lucide-react";
+import { Plus, Trash2, FileText, Activity, Pencil, Check, X } from "lucide-react";
 
 type Cat = { id: string; name: string; side: "left" | "right"; color: string };
 type Exp = any;
@@ -128,6 +128,52 @@ function ExpensesTab({ side, projectId, expenses, categories, perms }: { side: "
   const liveAmount = side === "right" && hours > 0
     ? hours * rate
     : qty * rate;
+
+  // Inline edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editVals, setEditVals] = useState<any>({});
+  const [editSaving, setEditSaving] = useState(false);
+
+  function startEdit(e: any) {
+    setEditingId(e.id);
+    setEditVals({
+      entry_date: e.entry_date ?? new Date().toISOString().slice(0, 10),
+      description: e.description ?? "",
+      unit: e.unit ?? "",
+      quantity: Number(e.quantity ?? 0),
+      total_hours: e.total_hours ?? null,
+      unit_price: Number(e.unit_price ?? 0),
+    });
+  }
+  function cancelEdit() { setEditingId(null); setEditVals({}); }
+  async function saveEdit(id: string) {
+    setEditSaving(true);
+    try {
+      const supabase = createClient();
+      const update: any = {
+        entry_date: editVals.entry_date,
+        description: String(editVals.description).trim(),
+        unit: editVals.unit || null,
+        quantity: Number(editVals.quantity || 0),
+        unit_price: Number(editVals.unit_price || 0),
+      };
+      if (side === "right") {
+        const h = Number(editVals.total_hours || 0);
+        update.total_hours = h > 0 ? h : null;
+      }
+      const { error } = await supabase.from("expenses").update(update).eq("id", id);
+      if (error) throw error;
+      const { data: u } = await supabase.auth.getUser();
+      await supabase.from("activity_log").insert({
+        project_id: projectId, user_id: u.user?.id, action: "expense.edited",
+        entity_type: "expense", entity_id: id, meta: { description: update.description },
+      });
+      cancelEdit();
+      router.refresh();
+    } catch (e: any) {
+      alert("Failed to update: " + (e?.message ?? ""));
+    } finally { setEditSaving(false); }
+  }
 
   async function add(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -404,7 +450,52 @@ function ExpensesTab({ side, projectId, expenses, categories, perms }: { side: "
             <tbody>
               {sideExp.length === 0 ? (
                 <tr><td colSpan={9} className="px-5 py-10 text-center text-slate-500">No {side === "left" ? "materials" : "labour"} added yet.</td></tr>
-              ) : sideExp.map((e: any) => (
+              ) : sideExp.map((e: any) => {
+                const isEditing = editingId === e.id;
+                if (isEditing) {
+                  const editAmount = side === "right" && Number(editVals.total_hours) > 0
+                    ? Number(editVals.total_hours) * Number(editVals.unit_price)
+                    : Number(editVals.quantity) * Number(editVals.unit_price);
+                  return (
+                    <tr key={e.id} className="border-t border-slate-100 bg-violet-50">
+                      <td className="px-3 py-2">
+                        <Input type="date" value={editVals.entry_date} onChange={(ev) => setEditVals({ ...editVals, entry_date: ev.target.value })} className="h-8 text-xs" />
+                      </td>
+                      <td className="px-3 py-2"><Badge variant="info">{e.category_name ?? "—"}</Badge></td>
+                      <td className="px-3 py-2">
+                        <Input value={editVals.description} onChange={(ev) => setEditVals({ ...editVals, description: ev.target.value })} className="h-8 text-xs" />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Select value={editVals.unit} onChange={(ev) => setEditVals({ ...editVals, unit: ev.target.value })} className="h-8 text-xs">
+                          {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                        </Select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input type="number" step="0.001" value={editVals.quantity} onChange={(ev) => setEditVals({ ...editVals, quantity: ev.target.value })} className="h-8 text-xs text-right" />
+                      </td>
+                      {side === "right" && (
+                        <td className="px-3 py-2">
+                          <Input type="number" step="0.5" value={editVals.total_hours ?? ""} onChange={(ev) => setEditVals({ ...editVals, total_hours: ev.target.value })} className="h-8 text-xs text-right" placeholder="—" />
+                        </td>
+                      )}
+                      {perms.canSeeLinePrices && (
+                        <td className="px-3 py-2">
+                          <Input type="number" step="0.01" value={editVals.unit_price} onChange={(ev) => setEditVals({ ...editVals, unit_price: ev.target.value })} className="h-8 text-xs text-right" />
+                        </td>
+                      )}
+                      {perms.canSeeLinePrices && (
+                        <td className="px-3 py-2 text-right font-medium tabular-nums text-emerald-700">{money(editAmount)}</td>
+                      )}
+                      <td className="px-2 py-2">
+                        <div className="flex gap-1 justify-end">
+                          <button onClick={() => saveEdit(e.id)} disabled={editSaving} className="p-1.5 rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200 disabled:opacity-50" title="Save"><Check size={14} /></button>
+                          <button onClick={cancelEdit} disabled={editSaving} className="p-1.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200" title="Cancel"><X size={14} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+                return (
                 <tr key={e.id} className="border-t border-slate-100">
                   <td className="px-5 py-3 text-slate-700">{shortDate(e.entry_date)}</td>
                   <td className="px-5 py-3"><Badge variant="info">{e.category_name ?? "—"}</Badge></td>
@@ -416,11 +507,15 @@ function ExpensesTab({ side, projectId, expenses, categories, perms }: { side: "
                   {perms.canSeeLinePrices && <td className="px-5 py-3 text-right font-medium tabular-nums">{money(Number(e.amount ?? 0))}</td>}
                   {perms.canDeleteExpense && (
                     <td className="px-3">
-                      <button onClick={() => remove(e.id)} className="text-slate-400 hover:text-rose-600 p-1"><Trash2 size={14} /></button>
+                      <div className="flex gap-1 justify-end">
+                        <button onClick={() => startEdit(e)} className="text-slate-400 hover:text-violet-600 p-1" title="Edit"><Pencil size={14} /></button>
+                        <button onClick={() => remove(e.id)} className="text-slate-400 hover:text-rose-600 p-1" title="Delete"><Trash2 size={14} /></button>
+                      </div>
                     </td>
                   )}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </CardBody>
