@@ -52,7 +52,9 @@ export default async function ProjectDetail({ params }: { params: { id: string }
             <Button variant="outline"><FileSpreadsheet size={16} /> Export Excel</Button>
           </Link>
           <Button variant="outline" disabled title="Coming in Phase 2"><FileText size={16} /> PDF</Button>
-          <Button className="bg-gradient-to-r from-violet-600 to-rose-500" disabled title="Coming — add your Gamma API key first"><Presentation size={16} /> Generate PPT</Button>
+          <Link href={`/presentations/new?project=${params.id}`}>
+            <Button className="bg-gradient-to-r from-violet-600 to-rose-500"><Presentation size={16} /> Generate PPT</Button>
+          </Link>
         </div>
       </div>
 
