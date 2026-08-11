@@ -98,7 +98,6 @@ function OverviewTab({ expenses, instructions }: { expenses: Exp[]; instructions
 /* -------- Expenses tab (one per side) -------- */
 function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" | "right"; projectId: string; expenses: Exp[]; categories: Cat[] }) {
   const router = useRouter();
-  const supabase = createClient();
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const sideExp = useMemo(() => expenses.filter((e) => e.side === side), [expenses, side]);
@@ -108,6 +107,7 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
   async function add(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErr(null); setSaving(true);
+    const supabase = createClient();
     const fd = new FormData(e.currentTarget);
     const catId = String(fd.get("category_id"));
     const cat = categories.find((c) => c.id === catId);
@@ -143,6 +143,7 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
 
   async function remove(id: string) {
     if (!confirm("Delete this expense?")) return;
+    const supabase = createClient();
     await supabase.from("expenses").delete().eq("id", id);
     const { data: u } = await supabase.auth.getUser();
     await supabase.from("activity_log").insert({

@@ -1,14 +1,14 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { Button, Card, CardBody, Input, Label, Select } from "@/components/ui";
 
 type Mode = "signin" | "signup";
 
 export function AuthForm() {
   const router = useRouter();
-  const supabase = createClient();
+  const configured = isSupabaseConfigured();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -17,11 +17,33 @@ export function AuthForm() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  if (!configured) {
+    return (
+      <Card>
+        <CardBody className="p-6 space-y-3 text-sm">
+          <div className="font-semibold text-slate-900">Setup required</div>
+          <p className="text-slate-600">
+            Supabase is not connected yet. Add these variables in <b>Railway → your service → Variables</b>, then trigger a redeploy:
+          </p>
+          <pre className="bg-slate-900 text-slate-100 rounded-md p-3 text-xs overflow-x-auto">{`NEXT_PUBLIC_SUPABASE_URL       = https://YOUR-PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY  = eyJhbGci...
+SUPABASE_SERVICE_ROLE_KEY      = eyJhbGci...
+COMPANY_NAME                   = SBJ Technical Works LLC
+COMPANY_ADDRESS                = Dubai Industrial City`}</pre>
+          <p className="text-xs text-slate-500">
+            Redeploys pick up the new vars automatically — the client bundle needs the two <code>NEXT_PUBLIC_</code> vars baked in at Docker build time.
+          </p>
+        </CardBody>
+      </Card>
+    );
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setLoading(true);
     try {
+      const supabase = createClient();
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
         if (error) throw error;

@@ -6,7 +6,6 @@ import { Button, Input, Label, Select, Textarea } from "@/components/ui";
 
 export function ProjectForm({ coordinators }: { coordinators: { id: string; full_name: string | null; email: string }[] }) {
   const router = useRouter();
-  const supabase = createClient();
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -14,6 +13,7 @@ export function ProjectForm({ coordinators }: { coordinators: { id: string; full
     e.preventDefault();
     setErr(null);
     setSaving(true);
+    const supabase = createClient();
     const fd = new FormData(e.currentTarget);
     const payload = {
       job_card_number: String(fd.get("job_card_number")).trim(),

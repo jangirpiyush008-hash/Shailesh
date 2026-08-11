@@ -14,10 +14,10 @@ const NAV = [
 export function Sidebar({ profile }: { profile: { full_name: string | null; email: string; role: string } | null }) {
   const path = usePathname();
   const router = useRouter();
-  const supabase = createClient();
 
   async function signOut() {
-    await supabase.auth.signOut();
+    const supabase = createClient();
+    if (supabase) await supabase.auth.signOut();
     router.replace("/login");
     router.refresh();
   }
