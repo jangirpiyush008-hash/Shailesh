@@ -11,10 +11,11 @@ export function ProjectForm({ coordinators }: { coordinators: { id: string; full
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const fd = new FormData(e.currentTarget);   // capture before await
     setErr(null);
     setSaving(true);
+    try {
     const supabase = createClient();
-    const fd = new FormData(e.currentTarget);
     const payload = {
       job_card_number: String(fd.get("job_card_number")).trim(),
       project_name: String(fd.get("project_name")).trim(),
@@ -42,7 +43,7 @@ export function ProjectForm({ coordinators }: { coordinators: { id: string; full
     const { data: user } = await supabase.auth.getUser();
     const { data, error } = await supabase.from("projects").insert({ ...payload, created_by: user.user!.id }).select("id").single();
 
-    if (error) { setErr(error.message); setSaving(false); return; }
+    if (error) throw error;
 
     await supabase.from("activity_log").insert({
       project_id: data!.id, user_id: user.user!.id, action: "project.created",
@@ -52,6 +53,10 @@ export function ProjectForm({ coordinators }: { coordinators: { id: string; full
 
     router.push(`/projects/${data!.id}`);
     router.refresh();
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to create project");
+      setSaving(false);
+    }
   }
 
   return (

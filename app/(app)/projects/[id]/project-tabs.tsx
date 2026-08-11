@@ -106,10 +106,11 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
 
   async function add(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setErr(null); setSaving(true);
-    const supabase = createClient();
-    const fd = new FormData(e.currentTarget);
-    const catId = String(fd.get("category_id"));
+    // Capture the form ref BEFORE any await — React nullifies e.currentTarget once we yield.
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+
+    const catId = String(fd.get("category_id") || "");
     const cat = categories.find((c) => c.id === catId);
     const payload: any = {
       project_id: projectId,
@@ -127,29 +128,45 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
       const hrs = Number(fd.get("total_hours") || 0);
       if (hrs > 0) payload.total_hours = hrs;
     }
-    if (!payload.description) { setErr("Description required"); setSaving(false); return; }
-    const { data: u } = await supabase.auth.getUser();
-    payload.added_by = u.user?.id;
-    const { error } = await supabase.from("expenses").insert(payload);
-    if (error) { setErr(error.message); setSaving(false); return; }
-    await supabase.from("activity_log").insert({
-      project_id: projectId, user_id: u.user?.id, action: "expense.added",
-      entity_type: "expense", meta: { side, category: cat?.name, description: payload.description },
-    });
-    (e.currentTarget as HTMLFormElement).reset();
-    setSaving(false);
-    router.refresh();
+    if (!payload.description) { setErr("Description required"); return; }
+
+    setErr(null); setSaving(true);
+    try {
+      const supabase = createClient();
+      const { data: u } = await supabase.auth.getUser();
+      payload.added_by = u.user?.id;
+
+      const { error: insErr } = await supabase.from("expenses").insert(payload);
+      if (insErr) throw insErr;
+
+      await supabase.from("activity_log").insert({
+        project_id: projectId, user_id: u.user?.id, action: "expense.added",
+        entity_type: "expense", meta: { side, category: cat?.name, description: payload.description },
+      });
+
+      form.reset();
+      router.refresh();
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to save expense");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function remove(id: string) {
     if (!confirm("Delete this expense?")) return;
-    const supabase = createClient();
-    await supabase.from("expenses").delete().eq("id", id);
-    const { data: u } = await supabase.auth.getUser();
-    await supabase.from("activity_log").insert({
-      project_id: projectId, user_id: u.user?.id, action: "expense.deleted", entity_type: "expense", entity_id: id,
-    });
-    router.refresh();
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("expenses").delete().eq("id", id);
+      if (error) throw error;
+      const { data: u } = await supabase.auth.getUser();
+      await supabase.from("activity_log").insert({
+        project_id: projectId, user_id: u.user?.id, action: "expense.deleted", entity_type: "expense", entity_id: id,
+      });
+      router.refresh();
+    } catch (e: any) {
+      alert("Delete failed: " + (e?.message ?? "unknown"));
+    }
   }
 
   return (
