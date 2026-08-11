@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardBody, CardHeader, CardTitle, Button, Input, Label, Select, Badge } from "@/components/ui";
 import { shortDate, cn } from "@/lib/utils";
 import { permissions as computePerms, type PermKey } from "@/lib/permissions";
-import { Plus, Trash2, Save, UserPlus, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+import { Plus, Trash2, Save, UserPlus, ChevronDown, ChevronUp } from "lucide-react";
 
 type Profile = {
   id: string;
@@ -70,20 +70,9 @@ export function UsersClient({
         </CardBody>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle className="text-sm">Access level reference</CardTitle></CardHeader>
-        <CardBody className="text-sm text-slate-600 space-y-2">
-          {Object.entries(accessLevels).map(([key, v]) => (
-            <div key={key} className="flex gap-3">
-              <Badge variant={key === "full" ? "success" : key === "view" ? "warning" : "info"}>{v.label}</Badge>
-              <span>{v.desc}</span>
-            </div>
-          ))}
-          <div className="pt-2 text-xs text-slate-500">
-            Access level only affects Coordinator users. Admins always have full access. Employees are always view-only.
-          </div>
-        </CardBody>
-      </Card>
+      <div className="text-xs text-slate-500 text-center">
+        Access level presets a starting set of permissions. Expand any row (▼) to fine-tune individual checkboxes and save.
+      </div>
     </div>
   );
 }
@@ -100,49 +89,41 @@ function UserRow({ profile, isSelf, accessLevels, permGroups, serviceKeySet, onC
   const [role, setRole] = useState(profile.role);
   const [level, setLevel] = useState(profile.access_level);
   const [name, setName] = useState(profile.full_name || "");
-  const [overrides, setOverrides] = useState<Record<string, boolean>>(profile.permissions_overrides ?? {});
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const baseChanged = role !== profile.role || level !== profile.access_level || name !== (profile.full_name || "");
-  const overridesChanged = JSON.stringify(overrides) !== JSON.stringify(profile.permissions_overrides ?? {});
-  const changed = baseChanged || overridesChanged;
+  // Start with the current effective permissions (base + any saved overrides)
+  const initial = computePerms({
+    role: profile.role, access_level: profile.access_level,
+    permissions_overrides: profile.permissions_overrides ?? {},
+  });
+  const [perms, setPerms] = useState<Record<string, boolean>>(() => {
+    const out: Record<string, boolean> = {};
+    permGroups.flatMap((g) => g.keys).forEach(({ key }) => { out[key] = (initial as any)[key]; });
+    return out;
+  });
+  const [pendingCheckboxChange, setPendingCheckboxChange] = useState(false);
 
-  // Compute effective permissions for the current role+level+overrides so
-  // checkboxes reflect the actual state
-  const effective = computePerms({ role, access_level: level, permissions_overrides: overrides });
-  const baseline  = computePerms({ role, access_level: level, permissions_overrides: {} });
+  const baseChanged = role !== profile.role || level !== profile.access_level || name !== (profile.full_name || "");
+  const changed = baseChanged || pendingCheckboxChange;
 
   function toggle(key: PermKey) {
-    const current = (overrides as any)[key];
-    const baseVal = (baseline as any)[key] as boolean;
-    // If already overridden, cycle: override → clear (back to base)
-    // If not overridden, toggle by setting override to the OPPOSITE of base
-    setOverrides((o) => {
-      const next = { ...o };
-      if (key in next) {
-        delete next[key];
-      } else {
-        next[key] = !baseVal;
-      }
-      return next;
-    });
-  }
-
-  function resetAll() {
-    setOverrides({});
+    setPerms((p) => ({ ...p, [key]: !p[key] }));
+    setPendingCheckboxChange(true);
   }
 
   async function save() {
     setSaving(true);
     try {
+      // Send every checkbox as an explicit override — clean and predictable
       const res = await fetch(`/api/users/${profile.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, access_level: level, full_name: name, permissions_overrides: overrides }),
+        body: JSON.stringify({ role, access_level: level, full_name: name, permissions_overrides: perms }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error);
+      setPendingCheckboxChange(false);
       onChanged();
     } catch (e: any) {
       alert("Failed to save: " + (e?.message ?? ""));
@@ -164,7 +145,6 @@ function UserRow({ profile, isSelf, accessLevels, permGroups, serviceKeySet, onC
 
   const isAdmin = role === "admin";
   const showAccess = role === "coordinator";
-  const overrideCount = Object.keys(overrides).length;
 
   return (
     <>
@@ -198,17 +178,12 @@ function UserRow({ profile, isSelf, accessLevels, permGroups, serviceKeySet, onC
             <button
               onClick={() => setExpanded((v) => !v)}
               className={cn(
-                "p-2 rounded-md hover:bg-slate-100 relative",
+                "p-2 rounded-md hover:bg-slate-100",
                 expanded ? "text-violet-700 bg-violet-50" : "text-slate-500"
               )}
-              title="Advanced permissions"
+              title="Permissions"
             >
               {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              {overrideCount > 0 && !expanded && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] grid place-items-center font-bold">
-                  {overrideCount}
-                </span>
-              )}
             </button>
             {changed && (
               <button
@@ -234,63 +209,42 @@ function UserRow({ profile, isSelf, accessLevels, permGroups, serviceKeySet, onC
         </td>
       </tr>
 
-      {/* Expandable per-user permission panel */}
+      {/* Expandable permission panel */}
       {expanded && (
         <tr className="border-t border-slate-100 bg-slate-50/70">
           <td colSpan={5} className="px-5 py-5">
-            <div className="flex items-start justify-between mb-4 gap-4 flex-wrap">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Fine-grained permissions</div>
-                <div className="text-xs text-slate-500 mt-0.5">
-                  Toggle any checkbox to override the base preset. Amber = overridden from default.
-                </div>
-              </div>
-              {overrideCount > 0 && (
-                <button onClick={resetAll} className="text-xs text-slate-500 hover:text-slate-900 inline-flex items-center gap-1">
-                  <RotateCcw size={12} /> Reset all overrides
-                </button>
-              )}
-            </div>
+            <div className="text-sm font-semibold text-slate-900 mb-4">Permissions</div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
               {permGroups.map((group) => (
                 <div key={group.section}>
                   <div className="text-xs uppercase tracking-wider font-semibold text-slate-500 mb-2">{group.section}</div>
                   <div className="space-y-1.5">
-                    {group.keys.map(({ key, label }) => {
-                      const overridden = key in overrides;
-                      const value = (effective as any)[key] as boolean;
-                      return (
-                        <label
-                          key={key}
-                          className={cn(
-                            "flex items-start gap-2 cursor-pointer group rounded-md px-2 py-1 -mx-2",
-                            overridden ? "bg-amber-50" : "hover:bg-slate-100"
-                          )}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={value}
-                            onChange={() => toggle(key)}
-                            className="mt-0.5 accent-violet-600"
-                          />
-                          <span className="text-sm text-slate-700 leading-tight">{label}</span>
-                          {overridden && (
-                            <span className="ml-auto text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Override</span>
-                          )}
-                        </label>
-                      );
-                    })}
+                    {group.keys.map(({ key, label }) => (
+                      <label
+                        key={key}
+                        className="flex items-start gap-2 cursor-pointer rounded-md px-2 py-1 -mx-2 hover:bg-slate-100"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!!perms[key]}
+                          onChange={() => toggle(key)}
+                          className="mt-0.5 accent-violet-600"
+                        />
+                        <span className="text-sm text-slate-700 leading-tight">{label}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
               ))}
             </div>
 
             {changed && (
-              <div className="mt-4 pt-4 border-t border-slate-200 flex justify-end gap-2">
-                <div className="text-xs text-slate-500 flex-1 self-center">
-                  {overrideCount} override{overrideCount === 1 ? "" : "s"} pending — hit save above to apply.
-                </div>
+              <div className="mt-4 pt-4 border-t border-slate-200 flex justify-end gap-2 items-center">
+                <span className="text-xs text-slate-500">Unsaved changes</span>
+                <Button onClick={save} disabled={saving || !serviceKeySet} size="sm" className="bg-gradient-to-r from-violet-600 to-rose-500">
+                  {saving ? "Saving…" : "Save"}
+                </Button>
               </div>
             )}
           </td>

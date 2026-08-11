@@ -124,6 +124,7 @@ function ExpensesTab({ side, projectId, expenses, categories, perms }: { side: "
   const [qty, setQty] = useState<number>(1);
   const [hours, setHours] = useState<number>(0);
   const [rate, setRate] = useState<number>(0);
+  const [labourLoc, setLabourLoc] = useState<string>("");   // At Workshop / On Site (labour side only)
   const liveAmount = side === "right" && hours > 0
     ? hours * rate
     : qty * rate;
@@ -136,13 +137,18 @@ function ExpensesTab({ side, projectId, expenses, categories, perms }: { side: "
 
     const catId = String(fd.get("category_id") || "");
     const cat = categories.find((c) => c.id === catId);
+    let description = String(fd.get("description") || "").trim();
+    // Labour rows: prefix with location so it reads "On Site — Carpenter"
+    if (side === "right" && labourLoc && !description.startsWith(labourLoc)) {
+      description = description ? `${labourLoc} — ${description}` : labourLoc;
+    }
     const payload: any = {
       project_id: projectId,
       category_id: catId || null,
       category_name: cat?.name ?? null,
       side,
       entry_date: String(fd.get("entry_date") || new Date().toISOString().slice(0, 10)),
-      description: String(fd.get("description") || "").trim(),
+      description,
       vendor: String(fd.get("vendor") || "") || null,
       unit: String(fd.get("unit") || "") || null,
       quantity: Number(fd.get("quantity") || 0),
@@ -169,7 +175,7 @@ function ExpensesTab({ side, projectId, expenses, categories, perms }: { side: "
       });
 
       form.reset();
-      setQty(1); setHours(0); setRate(0);   // reset live preview state
+      setQty(1); setHours(0); setRate(0); setLabourLoc("");   // reset live preview state
       router.refresh();
     } catch (e: any) {
       setErr(e?.message ?? "Failed to save expense");
@@ -276,7 +282,7 @@ function ExpensesTab({ side, projectId, expenses, categories, perms }: { side: "
         <CardBody>
           <form onSubmit={add} className={cn(
             "grid grid-cols-2 gap-3",
-            side === "right" ? "md:grid-cols-9" : "md:grid-cols-8"
+            side === "right" ? "md:grid-cols-10" : "md:grid-cols-8"
           )}>
             <div>
               <Label>Date</Label>
@@ -289,6 +295,16 @@ function ExpensesTab({ side, projectId, expenses, categories, perms }: { side: "
                 {sideCats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </Select>
             </div>
+            {side === "right" && (
+              <div>
+                <Label>Location</Label>
+                <Select value={labourLoc} onChange={(e) => setLabourLoc(e.target.value)} required>
+                  <option value="">— Select —</option>
+                  <option value="At Workshop">At Workshop</option>
+                  <option value="On Site">On Site</option>
+                </Select>
+              </div>
+            )}
             <div className="md:col-span-2 col-span-2">
               <Label>Description</Label>
               <Input
@@ -350,7 +366,9 @@ function ExpensesTab({ side, projectId, expenses, categories, perms }: { side: "
             </div>
             <div className={cn(
               "col-span-2 flex justify-end items-end",
-              perms.canEnterPrice ? (side === "right" ? "md:col-span-5" : "md:col-span-4") : (side === "right" ? "md:col-span-3" : "md:col-span-2")
+              perms.canEnterPrice
+                ? (side === "right" ? "md:col-span-6" : "md:col-span-4")
+                : (side === "right" ? "md:col-span-4" : "md:col-span-2")
             )}>
               <Button type="submit" disabled={saving} className="bg-gradient-to-r from-violet-600 to-rose-500 h-10">
                 {saving ? "Saving…" : (<><Plus size={16} /> Add expense</>)}
