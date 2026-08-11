@@ -2,11 +2,15 @@ import { createClient } from "@/lib/supabase/server";
 import { ProjectForm } from "./project-form";
 import { Card, CardBody } from "@/components/ui";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { currentProfile, permissions } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewProjectPage() {
+  const me = await currentProfile();
+  if (!permissions(me).canCreateProject) redirect("/projects");
   const supabase = createClient();
   const { data: coords } = await supabase
     .from("profiles")

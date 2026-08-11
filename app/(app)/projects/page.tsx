@@ -23,7 +23,9 @@ export default async function ProjectsPage() {
           <h1 className="text-2xl font-semibold">Projects</h1>
           <p className="text-sm text-slate-500 mt-1">Every project has one Job Card. Click a row to open.</p>
         </div>
-        <Link href="/projects/new"><Button><Plus size={16} /> New project</Button></Link>
+        {perms.canCreateProject && (
+          <Link href="/projects/new"><Button><Plus size={16} /> New project</Button></Link>
+        )}
       </div>
 
       <Card>
@@ -31,7 +33,9 @@ export default async function ProjectsPage() {
           {!projects?.length ? (
             <div className="p-16 text-center">
               <div className="text-slate-500 mb-4">No projects yet.</div>
-              <Link href="/projects/new"><Button variant="outline">Create your first project</Button></Link>
+              {perms.canCreateProject && (
+                <Link href="/projects/new"><Button variant="outline">Create your first project</Button></Link>
+              )}
             </div>
           ) : (
             <table className="w-full text-sm">

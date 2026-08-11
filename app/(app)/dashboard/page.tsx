@@ -68,12 +68,22 @@ export default async function DashboardPage() {
     <div className="p-8 space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">Real-time view of projects, revenue and expenses.</p>
+          <h1 className="text-2xl font-semibold">
+            {perms.isAdmin ? "Admin Dashboard"
+              : perms.isCoordinator ? "Coordinator Dashboard"
+              : "My Projects"}
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            {perms.isAdmin && "Full company view — projects, revenue, cost and profit across all coordinators."}
+            {perms.isCoordinator && "Manage your projects and track site-level costs. Financial totals stay with the admin."}
+            {perms.isEmployee && `Welcome ${profile?.full_name?.split(" ")[0] ?? ""}. Open a project below and add expenses on the Materials or Labour tab.`}
+          </p>
         </div>
-        <Link href="/projects/new">
-          <Button><Plus size={16} /> New project</Button>
-        </Link>
+        {perms.canCreateProject && (
+          <Link href="/projects/new">
+            <Button><Plus size={16} /> New project</Button>
+          </Link>
+        )}
       </div>
 
       <div className={`grid grid-cols-2 md:grid-cols-3 ${perms.canSeeTotals ? "lg:grid-cols-6" : "lg:grid-cols-3"} gap-4`}>

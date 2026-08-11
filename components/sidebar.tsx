@@ -1,17 +1,20 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, FolderKanban, LogOut, Presentation } from "lucide-react";
+import { LayoutDashboard, FolderKanban, LogOut, Presentation, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/projects", label: "Projects", icon: FolderKanban },
+type NavItem = { href: string; label: string; icon: any; adminOnly?: boolean };
+const NAV: NavItem[] = [
+  { href: "/dashboard",     label: "Dashboard",     icon: LayoutDashboard },
+  { href: "/projects",      label: "Projects",      icon: FolderKanban },
   { href: "/presentations", label: "Presentations", icon: Presentation },
+  { href: "/users",         label: "Users & Access", icon: Users, adminOnly: true },
 ];
 
 export function Sidebar({ profile }: { profile: { full_name: string | null; email: string; role: string } | null }) {
+  const items = NAV.filter((n) => !n.adminOnly || profile?.role === "admin");
   const path = usePathname();
   const router = useRouter();
 
@@ -32,7 +35,7 @@ export function Sidebar({ profile }: { profile: { full_name: string | null; emai
         <div className="mt-2 text-[11px] uppercase tracking-wider text-slate-400 font-medium">Technical Works LLC</div>
       </div>
       <nav className="p-3 space-y-1 flex-1">
-        {NAV.map((item) => {
+        {items.map((item) => {
           const active = path === item.href || (item.href !== "/dashboard" && path.startsWith(item.href));
           const Icon = item.icon;
           return (
