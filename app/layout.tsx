@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "SBJ Technical Works — JobCard Dashboard",
   description: "AI-powered project management, expense tracking and Job Card generation for SBJ Technical Works LLC.",
-  icons: { icon: "/sbj-mark.svg" },
+  icons: { icon: "/sbj-mark.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

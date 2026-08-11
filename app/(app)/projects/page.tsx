@@ -2,12 +2,15 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardBody, Badge, Button } from "@/components/ui";
 import { money, shortDate } from "@/lib/utils";
+import { currentProfile, permissions } from "@/lib/permissions";
 import { Plus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProjectsPage() {
   const supabase = createClient();
+  const profile = await currentProfile();
+  const perms = permissions(profile?.role);
   const { data: projects } = await supabase
     .from("projects")
     .select("*, coordinator:coordinator_id(full_name)")
@@ -38,7 +41,7 @@ export default async function ProjectsPage() {
                   <th className="text-left px-5 py-3">Project</th>
                   <th className="text-left px-5 py-3">Client</th>
                   <th className="text-left px-5 py-3">Coordinator</th>
-                  <th className="text-left px-5 py-3">Value</th>
+                  {perms.canSeeRevenue && <th className="text-left px-5 py-3">Value</th>}
                   <th className="text-left px-5 py-3">Start</th>
                   <th className="text-left px-5 py-3">Status</th>
                 </tr>
@@ -52,7 +55,7 @@ export default async function ProjectsPage() {
                     <td className="px-5 py-3 max-w-[280px] truncate">{p.project_name}</td>
                     <td className="px-5 py-3">{p.client_name}</td>
                     <td className="px-5 py-3 text-slate-600">{p.coordinator_name ?? p.coordinator?.full_name ?? "—"}</td>
-                    <td className="px-5 py-3 tabular-nums">{money(Number(p.project_value))}</td>
+                    {perms.canSeeRevenue && <td className="px-5 py-3 tabular-nums">{money(Number(p.project_value))}</td>}
                     <td className="px-5 py-3 text-slate-600">{shortDate(p.start_date)}</td>
                     <td className="px-5 py-3">
                       <Badge variant={p.status === "active" ? "info" : p.status === "completed" || p.status === "closed" ? "success" : "warning"}>{p.status}</Badge>

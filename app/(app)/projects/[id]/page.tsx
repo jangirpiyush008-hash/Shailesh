@@ -7,11 +7,14 @@ import { money, shortDate } from "@/lib/utils";
 import { ArrowLeft, FileSpreadsheet, FileText, Presentation, DollarSign, TrendingUp, TrendingDown, Wallet, MessageCircle } from "lucide-react";
 import { ProjectTabs } from "./project-tabs";
 import { buildWhatsAppReport, whatsAppShareUrl } from "@/lib/whatsapp-report";
+import { currentProfile, permissions } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProjectDetail({ params }: { params: { id: string } }) {
   const supabase = createClient();
+  const profile = await currentProfile();
+  const perms = permissions(profile?.role);
 
   const [{ data: project }, { data: expenses }, { data: cats }, { data: activity }] = await Promise.all([
     supabase.from("projects").select("*, coordinator:coordinator_id(full_name, email)").eq("id", params.id).single(),
@@ -50,32 +53,42 @@ export default async function ProjectDetail({ params }: { params: { id: string }
             )}
           </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <a
-            href={whatsAppShareUrl(buildWhatsAppReport(project as any, E as any))}
-            target="_blank"
-            rel="noopener"
-          >
-            <Button variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50">
-              <MessageCircle size={16} /> Send report to WhatsApp
-            </Button>
-          </a>
-          <Link href={`/projects/${params.id}/export`} target="_blank">
-            <Button variant="outline"><FileSpreadsheet size={16} /> Export Excel</Button>
-          </Link>
-          <Button variant="outline" disabled title="Coming in Phase 2"><FileText size={16} /> PDF</Button>
-          <Link href={`/presentations/new?project=${params.id}`}>
-            <Button className="bg-gradient-to-r from-violet-600 to-rose-500"><Presentation size={16} /> Generate PPT</Button>
-          </Link>
-        </div>
+        {perms.canGenerateReport && (
+          <div className="flex gap-2 flex-wrap">
+            <a
+              href={whatsAppShareUrl(buildWhatsAppReport(project as any, E as any))}
+              target="_blank"
+              rel="noopener"
+            >
+              <Button variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+                <MessageCircle size={16} /> Send report to WhatsApp
+              </Button>
+            </a>
+            <Link href={`/projects/${params.id}/export`} target="_blank">
+              <Button variant="outline"><FileSpreadsheet size={16} /> Export Excel</Button>
+            </Link>
+            <Button variant="outline" disabled title="Coming in Phase 2"><FileText size={16} /> PDF</Button>
+            <Link href={`/presentations/new?project=${params.id}`}>
+              <Button className="bg-gradient-to-r from-violet-600 to-rose-500"><Presentation size={16} /> Generate PPT</Button>
+            </Link>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard label="Project value" value={money(revenue)} icon={DollarSign} tone="sky" />
-        <KpiCard label="Total cost" value={money(totalCost)} icon={Wallet} tone="rose" />
-        <KpiCard label="Net profit" value={money(profit)} sub={`${profitPct.toFixed(1)}%`} icon={profit >= 0 ? TrendingUp : TrendingDown} tone={profit >= 0 ? "emerald" : "rose"} />
-        <KpiCard label="Budget used" value={`${budgetUsedPct.toFixed(0)}%`} sub={budgetUsedPct >= 100 ? "Over budget" : budgetUsedPct >= 90 ? "Approaching limit" : budgetUsedPct >= 80 ? "Watch this" : "OK"} icon={DollarSign} tone={budgetUsedPct >= 100 ? "rose" : budgetUsedPct >= 80 ? "amber" : "emerald"} />
-      </div>
+      {perms.canSeeTotals ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <KpiCard label="Project value" value={money(revenue)} icon={DollarSign} tone="sky" />
+          <KpiCard label="Total cost" value={money(totalCost)} icon={Wallet} tone="rose" />
+          <KpiCard label="Net profit" value={money(profit)} sub={`${profitPct.toFixed(1)}%`} icon={profit >= 0 ? TrendingUp : TrendingDown} tone={profit >= 0 ? "emerald" : "rose"} />
+          <KpiCard label="Budget used" value={`${budgetUsedPct.toFixed(0)}%`} sub={budgetUsedPct >= 100 ? "Over budget" : budgetUsedPct >= 90 ? "Approaching limit" : budgetUsedPct >= 80 ? "Watch this" : "OK"} icon={DollarSign} tone={budgetUsedPct >= 100 ? "rose" : budgetUsedPct >= 80 ? "amber" : "emerald"} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <KpiCard label="Total materials" value={E.filter((e: any) => e.side === "left").length} icon={Wallet} tone="violet" />
+          <KpiCard label="Total labour rows" value={E.filter((e: any) => e.side === "right").length} icon={Wallet} tone="amber" />
+          <KpiCard label="Days" value={project.start_date && project.end_date ? Math.max(1, Math.ceil((new Date(project.end_date).getTime() - new Date(project.start_date).getTime()) / 86400000)) : "—"} icon={Wallet} tone="emerald" />
+        </div>
+      )}
 
       <ProjectTabs
         projectId={project.id}
@@ -83,6 +96,14 @@ export default async function ProjectDetail({ params }: { params: { id: string }
         categories={cats ?? []}
         instructions={project.instructions ?? ""}
         activity={activity ?? []}
+        perms={{
+          canSeeLinePrices:  perms.canSeeLinePrices,
+          canSeeTotals:      perms.canSeeTotals,
+          canEnterPrice:     perms.canEnterPrice,
+          canDeleteExpense:  perms.canDeleteExpense,
+          canSeeOverviewTab: perms.canSeeOverviewTab,
+          canSeeReportsTab:  perms.canSeeReportsTab,
+        }}
         header={{
           job_card_number: project.job_card_number,
           client_name: project.client_name,

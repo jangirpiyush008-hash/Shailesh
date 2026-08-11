@@ -4,12 +4,15 @@ import { Card, CardBody, CardHeader, CardTitle, Button, Badge } from "@/componen
 import { KpiCard } from "@/components/kpi-card";
 import { RevenueTrend, ExpenseCategoryChart, StatusBar } from "@/components/dashboard-charts";
 import { money, shortDate } from "@/lib/utils";
+import { currentProfile, permissions } from "@/lib/permissions";
 import { Briefcase, TrendingUp, DollarSign, CheckCircle2, Clock, AlertTriangle, Plus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const supabase = createClient();
+  const profile = await currentProfile();
+  const perms = permissions(profile?.role);
 
   const [{ data: projects }, { data: expenses }] = await Promise.all([
     supabase.from("projects").select("*").order("created_at", { ascending: false }),
@@ -73,21 +76,27 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className={`grid grid-cols-2 md:grid-cols-3 ${perms.canSeeTotals ? "lg:grid-cols-6" : "lg:grid-cols-3"} gap-4`}>
         <KpiCard label="Active" value={totals.active} icon={Briefcase} tone="violet" />
         <KpiCard label="Completed" value={totals.completed} icon={CheckCircle2} tone="emerald" />
         <KpiCard label="Pending" value={totals.pending} icon={Clock} tone="amber" />
-        <KpiCard label="Revenue" value={money(totals.revenue)} icon={TrendingUp} tone="sky" />
-        <KpiCard label="Total cost" value={money(totals.cost)} icon={DollarSign} tone="rose" />
-        <KpiCard label="Net profit" value={money(profit)} sub={profit >= 0 ? "In profit" : "In loss"} icon={AlertTriangle} tone={profit >= 0 ? "emerald" : "rose"} />
+        {perms.canSeeTotals && (
+          <>
+            <KpiCard label="Revenue" value={money(totals.revenue)} icon={TrendingUp} tone="sky" />
+            <KpiCard label="Total cost" value={money(totals.cost)} icon={DollarSign} tone="rose" />
+            <KpiCard label="Net profit" value={money(profit)} sub={profit >= 0 ? "In profit" : "In loss"} icon={AlertTriangle} tone={profit >= 0 ? "emerald" : "rose"} />
+          </>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <RevenueTrend data={Object.values(monthly)} />
+      {perms.canSeeTotals && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2">
+            <RevenueTrend data={Object.values(monthly)} />
+          </div>
+          <ExpenseCategoryChart data={catData.length ? catData : [{ name: "No data yet", value: 1 }]} />
         </div>
-        <ExpenseCategoryChart data={catData.length ? catData : [{ name: "No data yet", value: 1 }]} />
-      </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
@@ -105,7 +114,7 @@ export default async function DashboardPage() {
                     <tr>
                       <th className="text-left px-5 py-3">Job Card</th>
                       <th className="text-left px-5 py-3">Client</th>
-                      <th className="text-left px-5 py-3">Value</th>
+                      {perms.canSeeTotals && <th className="text-left px-5 py-3">Value</th>}
                       <th className="text-left px-5 py-3">Status</th>
                     </tr>
                   </thead>
@@ -117,7 +126,7 @@ export default async function DashboardPage() {
                           <div className="text-xs text-slate-500 truncate max-w-[240px]">{p.project_name}</div>
                         </td>
                         <td className="px-5 py-3 text-slate-700">{p.client_name}</td>
-                        <td className="px-5 py-3 tabular-nums">{money(Number(p.project_value))}</td>
+                        {perms.canSeeTotals && <td className="px-5 py-3 tabular-nums">{money(Number(p.project_value))}</td>}
                         <td className="px-5 py-3"><Badge variant={p.status === "active" ? "info" : p.status === "completed" || p.status === "closed" ? "success" : "warning"}>{p.status}</Badge></td>
                       </tr>
                     ))}
@@ -130,33 +139,35 @@ export default async function DashboardPage() {
         <StatusBar data={statusData} />
       </div>
 
-      <Card>
-        <CardHeader><CardTitle>Latest expenses</CardTitle></CardHeader>
-        <CardBody className="p-0">
-          {recentExpenses.length === 0 ? (
-            <div className="p-10 text-center text-sm text-slate-500">No expenses recorded yet.</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-slate-600 uppercase text-xs">
-                <tr>
-                  <th className="text-left px-5 py-3">Date</th>
-                  <th className="text-left px-5 py-3">Category</th>
-                  <th className="text-left px-5 py-3">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentExpenses.map((e) => (
-                  <tr key={e.id} className="border-t border-slate-100 hover:bg-slate-50">
-                    <td className="px-5 py-3 text-slate-700">{shortDate(e.entry_date)}</td>
-                    <td className="px-5 py-3">{e.category_name ?? "—"}</td>
-                    <td className="px-5 py-3 tabular-nums">{money(Number(e.amount))}</td>
+      {perms.canSeeTotals && (
+        <Card>
+          <CardHeader><CardTitle>Latest expenses</CardTitle></CardHeader>
+          <CardBody className="p-0">
+            {recentExpenses.length === 0 ? (
+              <div className="p-10 text-center text-sm text-slate-500">No expenses recorded yet.</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-slate-600 uppercase text-xs">
+                  <tr>
+                    <th className="text-left px-5 py-3">Date</th>
+                    <th className="text-left px-5 py-3">Category</th>
+                    <th className="text-left px-5 py-3">Amount</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </CardBody>
-      </Card>
+                </thead>
+                <tbody>
+                  {recentExpenses.map((e) => (
+                    <tr key={e.id} className="border-t border-slate-100 hover:bg-slate-50">
+                      <td className="px-5 py-3 text-slate-700">{shortDate(e.entry_date)}</td>
+                      <td className="px-5 py-3">{e.category_name ?? "—"}</td>
+                      <td className="px-5 py-3 tabular-nums">{money(Number(e.amount))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </CardBody>
+        </Card>
+      )}
     </div>
   );
 }

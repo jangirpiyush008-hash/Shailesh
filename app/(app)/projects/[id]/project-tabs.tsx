@@ -10,7 +10,7 @@ import { Plus, Trash2, FileText, Activity } from "lucide-react";
 type Cat = { id: string; name: string; side: "left" | "right"; color: string };
 type Exp = any;
 
-const TABS = [
+const ALL_TABS = [
   { id: "overview", label: "Overview" },
   { id: "left",     label: "Materials" },
   { id: "right",    label: "Labour" },
@@ -19,8 +19,17 @@ const TABS = [
   { id: "reports",  label: "Reports" },
 ] as const;
 
+export type ExpensePerms = {
+  canSeeLinePrices: boolean;
+  canSeeTotals: boolean;
+  canEnterPrice: boolean;
+  canDeleteExpense: boolean;
+  canSeeOverviewTab: boolean;
+  canSeeReportsTab: boolean;
+};
+
 export function ProjectTabs({
-  projectId, expenses, categories, instructions, activity,
+  projectId, expenses, categories, instructions, activity, perms,
 }: {
   projectId: string;
   expenses: Exp[];
@@ -28,8 +37,14 @@ export function ProjectTabs({
   instructions: string;
   activity: any[];
   header: any;
+  perms: ExpensePerms;
 }) {
-  const [tab, setTab] = useState<typeof TABS[number]["id"]>("overview");
+  const TABS = ALL_TABS.filter((t) => {
+    if (t.id === "overview" && !perms.canSeeOverviewTab) return false;
+    if (t.id === "reports"  && !perms.canSeeReportsTab)  return false;
+    return true;
+  });
+  const [tab, setTab] = useState<typeof ALL_TABS[number]["id"]>(TABS[0].id);
 
   return (
     <div>
@@ -52,12 +67,12 @@ export function ProjectTabs({
         </div>
       </div>
 
-      {tab === "overview" && <OverviewTab expenses={expenses} instructions={instructions} />}
-      {tab === "left" && <ExpensesTab side="left" projectId={projectId} expenses={expenses} categories={categories} />}
-      {tab === "right" && <ExpensesTab side="right" projectId={projectId} expenses={expenses} categories={categories} />}
+      {tab === "overview" && perms.canSeeOverviewTab && <OverviewTab expenses={expenses} instructions={instructions} />}
+      {tab === "left" && <ExpensesTab side="left" projectId={projectId} expenses={expenses} categories={categories} perms={perms} />}
+      {tab === "right" && <ExpensesTab side="right" projectId={projectId} expenses={expenses} categories={categories} perms={perms} />}
       {tab === "documents" && <DocumentsTab projectId={projectId} />}
       {tab === "timeline" && <TimelineTab activity={activity} />}
-      {tab === "reports" && <ReportsTab expenses={expenses} categories={categories} />}
+      {tab === "reports" && perms.canSeeReportsTab && <ReportsTab expenses={expenses} categories={categories} />}
     </div>
   );
 }
@@ -97,7 +112,7 @@ function OverviewTab({ expenses, instructions }: { expenses: Exp[]; instructions
 }
 
 /* -------- Expenses tab (one per side) -------- */
-function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" | "right"; projectId: string; expenses: Exp[]; categories: Cat[] }) {
+function ExpensesTab({ side, projectId, expenses, categories, perms }: { side: "left" | "right"; projectId: string; expenses: Exp[]; categories: Cat[]; perms: ExpensePerms }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -265,20 +280,24 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
                 />
               </div>
             )}
-            <div>
-              <Label>Unit rate</Label>
-              <Input
-                type="number" step="0.01" name="unit_price"
-                value={rate} onChange={(e) => setRate(Number(e.target.value || 0))}
-              />
-            </div>
-            {/* Total — read-only, styled like the other inputs but green so it stands out */}
-            <div>
-              <Label className="text-emerald-700">Total</Label>
-              <div className="h-10 w-full rounded-lg border border-emerald-300 bg-emerald-50 px-3 flex items-center text-emerald-900 font-semibold tabular-nums text-sm">
-                {money(liveAmount)}
-              </div>
-            </div>
+            {perms.canEnterPrice && (
+              <>
+                <div>
+                  <Label>Unit rate</Label>
+                  <Input
+                    type="number" step="0.01" name="unit_price"
+                    value={rate} onChange={(e) => setRate(Number(e.target.value || 0))}
+                  />
+                </div>
+                {/* Total — read-only, styled like the other inputs but green so it stands out */}
+                <div>
+                  <Label className="text-emerald-700">Total</Label>
+                  <div className="h-10 w-full rounded-lg border border-emerald-300 bg-emerald-50 px-3 flex items-center text-emerald-900 font-semibold tabular-nums text-sm">
+                    {money(liveAmount)}
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="md:col-span-4 col-span-2">
               <Label>Vendor / notes</Label>
@@ -286,7 +305,7 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
             </div>
             <div className={cn(
               "col-span-2 flex justify-end items-end",
-              side === "right" ? "md:col-span-5" : "md:col-span-4"
+              perms.canEnterPrice ? (side === "right" ? "md:col-span-5" : "md:col-span-4") : (side === "right" ? "md:col-span-3" : "md:col-span-2")
             )}>
               <Button type="submit" disabled={saving} className="bg-gradient-to-r from-violet-600 to-rose-500 h-10">
                 {saving ? "Saving…" : (<><Plus size={16} /> Add expense</>)}
@@ -300,7 +319,9 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle>{side === "left" ? "Materials / Transport / Food Costs" : "Labour / Vehicle / Food Costs"}</CardTitle>
-          <div className="text-sm text-slate-500">Total: <span className="font-semibold text-slate-900 tabular-nums">{money(total)}</span></div>
+          {perms.canSeeTotals && (
+            <div className="text-sm text-slate-500">Total: <span className="font-semibold text-slate-900 tabular-nums">{money(total)}</span></div>
+          )}
         </CardHeader>
         <CardBody className="p-0">
           <table className="w-full text-sm">
@@ -312,9 +333,9 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
                 <th className="text-left px-5 py-3">Unit</th>
                 <th className="text-right px-5 py-3">Quantity</th>
                 {side === "right" && <th className="text-right px-5 py-3">Hours</th>}
-                <th className="text-right px-5 py-3">Unit Rate</th>
-                <th className="text-right px-5 py-3">Total</th>
-                <th className="w-10 px-3"></th>
+                {perms.canSeeLinePrices && <th className="text-right px-5 py-3">Unit Rate</th>}
+                {perms.canSeeLinePrices && <th className="text-right px-5 py-3">Total</th>}
+                {perms.canDeleteExpense && <th className="w-10 px-3"></th>}
               </tr>
             </thead>
             <tbody>
@@ -328,11 +349,13 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
                   <td className="px-5 py-3 text-slate-600">{e.unit ?? "—"}</td>
                   <td className="px-5 py-3 text-right tabular-nums">{Number(e.quantity ?? 0).toLocaleString()}</td>
                   {side === "right" && <td className="px-5 py-3 text-right tabular-nums">{e.total_hours ?? "—"}</td>}
-                  <td className="px-5 py-3 text-right tabular-nums">{Number(e.unit_price ?? 0).toLocaleString()}</td>
-                  <td className="px-5 py-3 text-right font-medium tabular-nums">{money(Number(e.amount ?? 0))}</td>
-                  <td className="px-3">
-                    <button onClick={() => remove(e.id)} className="text-slate-400 hover:text-rose-600 p-1"><Trash2 size={14} /></button>
-                  </td>
+                  {perms.canSeeLinePrices && <td className="px-5 py-3 text-right tabular-nums">{Number(e.unit_price ?? 0).toLocaleString()}</td>}
+                  {perms.canSeeLinePrices && <td className="px-5 py-3 text-right font-medium tabular-nums">{money(Number(e.amount ?? 0))}</td>}
+                  {perms.canDeleteExpense && (
+                    <td className="px-3">
+                      <button onClick={() => remove(e.id)} className="text-slate-400 hover:text-rose-600 p-1"><Trash2 size={14} /></button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

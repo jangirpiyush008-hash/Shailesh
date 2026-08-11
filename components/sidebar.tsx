@@ -27,7 +27,7 @@ export function Sidebar({ profile }: { profile: { full_name: string | null; emai
       <div className="p-5 border-b border-slate-100">
         <Link href="/dashboard" className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/sbj-logo.svg" alt="SBJ Technical Works" className="h-9 w-auto" />
+          <img src="/sbj-logo.png" alt="SBJ Technical Works" className="h-9 w-auto" />
         </Link>
         <div className="mt-2 text-[11px] uppercase tracking-wider text-slate-400 font-medium">Technical Works LLC</div>
       </div>
