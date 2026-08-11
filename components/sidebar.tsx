@@ -1,16 +1,17 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, FolderKanban, LogOut, Presentation, Users } from "lucide-react";
+import { LayoutDashboard, FolderKanban, LogOut, Presentation, Users, MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-type NavItem = { href: string; label: string; icon: any; adminOnly?: boolean };
+type NavItem = { href: string; label: string; icon: any; adminOnly?: boolean; badge?: string };
 const NAV: NavItem[] = [
-  { href: "/dashboard",     label: "Dashboard",     icon: LayoutDashboard },
-  { href: "/projects",      label: "Projects",      icon: FolderKanban },
-  { href: "/presentations", label: "Presentations", icon: Presentation },
-  { href: "/users",         label: "Users & Access", icon: Users, adminOnly: true },
+  { href: "/dashboard",     label: "Dashboard",       icon: LayoutDashboard },
+  { href: "/projects",      label: "Projects",        icon: FolderKanban },
+  { href: "/presentations", label: "Presentations",   icon: Presentation },
+  { href: "/whatsapp",      label: "WhatsApp Bot",    icon: MessageCircle, adminOnly: true, badge: "Soon" },
+  { href: "/users",         label: "Users & Access",  icon: Users, adminOnly: true },
 ];
 
 export function Sidebar({ profile }: { profile: { full_name: string | null; email: string; role: string } | null }) {
@@ -50,7 +51,12 @@ export function Sidebar({ profile }: { profile: { full_name: string | null; emai
               )}
             >
               <Icon size={18} />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.badge && (
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase tracking-wider">
+                  {item.badge}
+                </span>
+              )}
             </Link>
           );
         })}
