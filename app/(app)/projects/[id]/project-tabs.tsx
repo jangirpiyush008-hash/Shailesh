@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardBody, CardHeader, CardTitle, Button, Input, Label, Select, Badge, Textarea } from "@/components/ui";
 import { money, shortDate, cn } from "@/lib/utils";
+import { UNITS } from "@/lib/constants";
 import { Plus, Trash2, FileText, Activity } from "lucide-react";
 
 type Cat = { id: string; name: string; side: "left" | "right"; color: string };
@@ -104,6 +105,14 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
   const total = sideExp.reduce((s, e: any) => s + Number(e.amount ?? 0), 0);
   const sideCats = categories.filter((c) => c.side === side);
 
+  // Live Amount preview state — updates as user types Qty / Hours / Rate
+  const [qty, setQty] = useState<number>(1);
+  const [hours, setHours] = useState<number>(0);
+  const [rate, setRate] = useState<number>(0);
+  const liveAmount = side === "right" && hours > 0
+    ? hours * rate
+    : qty * rate;
+
   async function add(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     // Capture the form ref BEFORE any await — React nullifies e.currentTarget once we yield.
@@ -145,6 +154,7 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
       });
 
       form.reset();
+      setQty(1); setHours(0); setRate(0);   // reset live preview state
       router.refresh();
     } catch (e: any) {
       setErr(e?.message ?? "Failed to save expense");
@@ -192,27 +202,44 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
             </div>
             <div>
               <Label>Unit</Label>
-              <Input name="unit" placeholder={side === "left" ? "Sheet" : "NOS"} />
+              <Select name="unit" defaultValue={side === "left" ? "Sheet" : "NOS"}>
+                {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+              </Select>
             </div>
             <div>
-              <Label>Qty</Label>
-              <Input type="number" step="0.001" name="quantity" defaultValue="1" />
+              <Label>Quantity</Label>
+              <Input
+                type="number" step="0.001" name="quantity"
+                value={qty} onChange={(e) => setQty(Number(e.target.value || 0))}
+              />
             </div>
             {side === "right" && (
               <div>
-                <Label>Total hrs</Label>
-                <Input type="number" step="0.5" name="total_hours" placeholder="216" />
+                <Label>Total hours</Label>
+                <Input
+                  type="number" step="0.5" name="total_hours" placeholder="216"
+                  value={hours || ""} onChange={(e) => setHours(Number(e.target.value || 0))}
+                />
               </div>
             )}
             <div>
-              <Label>Rate</Label>
-              <Input type="number" step="0.01" name="unit_price" defaultValue="0" />
+              <Label>Unit rate</Label>
+              <Input
+                type="number" step="0.01" name="unit_price"
+                value={rate} onChange={(e) => setRate(Number(e.target.value || 0))}
+              />
             </div>
             <div className="md:col-span-2 col-span-2">
               <Label>Vendor / notes</Label>
               <Input name="vendor" />
             </div>
-            <div className="col-span-2 md:col-span-7 flex justify-end mt-2">
+            <div className="col-span-2 md:col-span-7 flex justify-between items-center mt-2 gap-3 flex-wrap">
+              <div className="inline-flex items-center gap-3 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-2.5">
+                <span className="text-xs uppercase tracking-wider text-emerald-700 font-semibold">
+                  Total {side === "right" && hours > 0 ? "(hrs × rate)" : "(qty × rate)"}
+                </span>
+                <span className="text-xl font-bold tabular-nums text-emerald-900">{money(liveAmount)}</span>
+              </div>
               <Button type="submit" disabled={saving} className="bg-gradient-to-r from-violet-600 to-rose-500">
                 {saving ? "Saving…" : (<><Plus size={16} /> Add expense</>)}
               </Button>
@@ -235,10 +262,10 @@ function ExpensesTab({ side, projectId, expenses, categories }: { side: "left" |
                 <th className="text-left px-5 py-3">Category</th>
                 <th className="text-left px-5 py-3">Description</th>
                 <th className="text-left px-5 py-3">Unit</th>
-                <th className="text-right px-5 py-3">Qty</th>
+                <th className="text-right px-5 py-3">Quantity</th>
                 {side === "right" && <th className="text-right px-5 py-3">Hours</th>}
-                <th className="text-right px-5 py-3">Rate</th>
-                <th className="text-right px-5 py-3">Amount</th>
+                <th className="text-right px-5 py-3">Unit Rate</th>
+                <th className="text-right px-5 py-3">Total</th>
                 <th className="w-10 px-3"></th>
               </tr>
             </thead>

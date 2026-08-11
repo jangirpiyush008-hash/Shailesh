@@ -4,8 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardBody, CardHeader, CardTitle, Badge, Button } from "@/components/ui";
 import { KpiCard } from "@/components/kpi-card";
 import { money, shortDate } from "@/lib/utils";
-import { ArrowLeft, FileSpreadsheet, FileText, Presentation, DollarSign, TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, FileText, Presentation, DollarSign, TrendingUp, TrendingDown, Wallet, MessageCircle } from "lucide-react";
 import { ProjectTabs } from "./project-tabs";
+import { buildWhatsAppReport, whatsAppShareUrl } from "@/lib/whatsapp-report";
 
 export const dynamic = "force-dynamic";
 
@@ -44,10 +45,21 @@ export default async function ProjectDetail({ params }: { params: { id: string }
             <span>Client: {project.client_name}</span>
             {project.exhibition_name && <span>Exhibition: {project.exhibition_name}</span>}
             {project.stand_name && <span>Stand: {project.stand_name}</span>}
-            {project.coordinator?.full_name && <span>Coordinator: {project.coordinator.full_name}</span>}
+            {(project.coordinator_name || project.coordinator?.full_name) && (
+              <span>Coordinator: {project.coordinator_name || project.coordinator?.full_name}</span>
+            )}
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <a
+            href={whatsAppShareUrl(buildWhatsAppReport(project as any, E as any))}
+            target="_blank"
+            rel="noopener"
+          >
+            <Button variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+              <MessageCircle size={16} /> Send report to WhatsApp
+            </Button>
+          </a>
           <Link href={`/projects/${params.id}/export`} target="_blank">
             <Button variant="outline"><FileSpreadsheet size={16} /> Export Excel</Button>
           </Link>

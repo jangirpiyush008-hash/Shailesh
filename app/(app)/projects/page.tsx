@@ -51,7 +51,7 @@ export default async function ProjectsPage() {
                     </td>
                     <td className="px-5 py-3 max-w-[280px] truncate">{p.project_name}</td>
                     <td className="px-5 py-3">{p.client_name}</td>
-                    <td className="px-5 py-3 text-slate-600">{p.coordinator?.full_name ?? "—"}</td>
+                    <td className="px-5 py-3 text-slate-600">{p.coordinator_name ?? p.coordinator?.full_name ?? "—"}</td>
                     <td className="px-5 py-3 tabular-nums">{money(Number(p.project_value))}</td>
                     <td className="px-5 py-3 text-slate-600">{shortDate(p.start_date)}</td>
                     <td className="px-5 py-3">

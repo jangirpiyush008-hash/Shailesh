@@ -3,11 +3,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Input, Label, Select, Textarea } from "@/components/ui";
+import { COORDINATOR_PRESETS } from "@/lib/constants";
 
 export function ProjectForm({ coordinators }: { coordinators: { id: string; full_name: string | null; email: string }[] }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [coordinatorName, setCoordinatorName] = useState<string>("");
+  const [coordinatorCustom, setCoordinatorCustom] = useState<string>("");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -29,6 +32,9 @@ export function ProjectForm({ coordinators }: { coordinators: { id: string; full
       city: String(fd.get("city") || "") || null,
       venue: String(fd.get("venue") || "") || null,
       coordinator_id: String(fd.get("coordinator_id") || "") || null,
+      coordinator_name: coordinatorName === "__other__"
+        ? (coordinatorCustom.trim() || null)
+        : (coordinatorName || null),
       sales_person: String(fd.get("sales_person") || "") || null,
       project_value: Number(fd.get("project_value") || 0),
       estimated_profit: Number(fd.get("estimated_profit") || 0),
@@ -76,12 +82,27 @@ export function ProjectForm({ coordinators }: { coordinators: { id: string; full
         </div>
         <div>
           <Label>Coordinator</Label>
-          <Select name="coordinator_id" defaultValue="">
+          <Select value={coordinatorName} onChange={(e) => setCoordinatorName(e.target.value)}>
             <option value="">— Select —</option>
-            {coordinators.map((c) => (
-              <option key={c.id} value={c.id}>{c.full_name ?? c.email}</option>
+            {COORDINATOR_PRESETS.map((n) => (
+              <option key={n} value={n}>{n}</option>
             ))}
+            {coordinators.length > 0 && <option disabled>──────</option>}
+            {coordinators.map((c) => (
+              <option key={c.id} value={c.full_name ?? c.email}>{c.full_name ?? c.email} (user)</option>
+            ))}
+            <option value="__other__">Other — type a name…</option>
           </Select>
+          {coordinatorName === "__other__" && (
+            <Input
+              className="mt-2"
+              placeholder="Coordinator name"
+              value={coordinatorCustom}
+              onChange={(e) => setCoordinatorCustom(e.target.value)}
+            />
+          )}
+          {/* Hidden field so the form still POSTs a value (unused server-side; we send from state) */}
+          <input type="hidden" name="coordinator_id" value="" />
         </div>
         <div className="md:col-span-2">
           <Label>Client address</Label>

@@ -28,7 +28,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     exhibition_name: project.exhibition_name,
     start_date: project.start_date,
     end_date: project.end_date,
-    coordinator_name: (project as any).coordinator?.full_name ?? null,
+    coordinator_name: project.coordinator_name ?? (project as any).coordinator?.full_name ?? null,
     instructions: project.instructions,
   };
 
