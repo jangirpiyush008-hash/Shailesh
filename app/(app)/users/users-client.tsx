@@ -286,6 +286,18 @@ function InviteForm({ onDone }: { onDone: () => void }) {
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error);
+
+      // Show welcome-message status to the admin
+      if (j.welcome_sent) {
+        alert(`✅ User created + WhatsApp welcome message sent to ${cleanPhone}`);
+      } else if (j.welcome_error) {
+        alert(`✅ User created — but WhatsApp welcome failed: ${j.welcome_error}\n\nCheck the phone number and try messaging them manually.`);
+      } else if (j.welcome_note) {
+        alert(`✅ User created.\n\nℹ ${j.welcome_note}`);
+      } else {
+        alert(`✅ User created.`);
+      }
+
       setName(""); setEmail(""); setPassword(""); setPhone("");
       onDone();
     } catch (e: any) {

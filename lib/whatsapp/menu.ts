@@ -79,6 +79,27 @@ export const M = {
     `4. Vehicle:\n   _"JC415 3ton 2 trip @ 130"_\n\n` +
     `Bot sab samajh leta hai — Hindi, English, mixed sab chalega 🙌`,
 
+  welcomeCoordinator: (params: { name: string; role: string; adminName?: string }) =>
+    `🎉 *Welcome to SBJ, ${params.name}!*\n\n` +
+    `Aapko ${params.adminName ? params.adminName + " ne " : ""}dashboard mein *${params.role === "coordinator" ? "Coordinator" : "Employee"}* ke roop mein add kar diya hai.\n\n` +
+    `📝 *Aap yahi WhatsApp pe entries log kar sakte ho.* Koi login/password ki zaroorat nahi.\n\n` +
+    `*Kaise use karein:*\n` +
+    `Bas message bhej do jaise:\n` +
+    `_"JC415 material 25 sheet 18mm mdf @ 53"_\n\n` +
+    `Ya "menu" type karo — step by step guide milega.\n\n` +
+    `Koi bhi doubt ho toh "help" bhej do.`,
+
+  welcomeAdmin: (params: { name: string; email: string; password: string; loginUrl: string; adminName?: string }) =>
+    `🎉 *Welcome to SBJ Dashboard, ${params.name}!*\n\n` +
+    `Aapko ${params.adminName ? params.adminName + " ne " : ""}*Admin* access diya hai.\n\n` +
+    `🌐 *Web Dashboard Login:*\n` +
+    `${params.loginUrl}\n\n` +
+    `📧 *Email:* ${params.email}\n` +
+    `🔑 *Temporary password:* \`${params.password}\`\n\n` +
+    `⚠ *Important:* Login karke turant password change kar lena.\n\n` +
+    `Aap dashboard se sab kuch manage kar sakte ho: projects, users, expenses, reports. Aur WhatsApp pe bhi entries log kar sakte ho.\n\n` +
+    `Coordinator/employee ke har entry ka notification aapko yahi WhatsApp pe milega.`,
+
   adminNotification: (params: {
     user_name: string;
     project_code: string;
