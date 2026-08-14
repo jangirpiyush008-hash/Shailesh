@@ -2,18 +2,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
-import { Button, Card, CardBody, Input, Label, Select } from "@/components/ui";
-
-type Mode = "signin" | "signup";
+import { Button, Card, CardBody, Input, Label } from "@/components/ui";
 
 export function AuthForm() {
   const router = useRouter();
   const configured = isSupabaseConfigured();
-  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
-  const [name, setName] = useState("");
-  const [role, setRole] = useState("employee");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -27,12 +22,7 @@ export function AuthForm() {
           </p>
           <pre className="bg-slate-900 text-slate-100 rounded-md p-3 text-xs overflow-x-auto">{`NEXT_PUBLIC_SUPABASE_URL       = https://YOUR-PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY  = eyJhbGci...
-SUPABASE_SERVICE_ROLE_KEY      = eyJhbGci...
-COMPANY_NAME                   = SBJ Technical Works LLC
-COMPANY_ADDRESS                = Dubai Industrial City`}</pre>
-          <p className="text-xs text-slate-500">
-            Redeploys pick up the new vars automatically — the client bundle needs the two <code>NEXT_PUBLIC_</code> vars baked in at Docker build time.
-          </p>
+SUPABASE_SERVICE_ROLE_KEY      = eyJhbGci...`}</pre>
         </CardBody>
       </Card>
     );
@@ -44,21 +34,12 @@ COMPANY_ADDRESS                = Dubai Industrial City`}</pre>
     setLoading(true);
     try {
       const supabase = createClient();
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password: pw,
-          options: { data: { full_name: name, role } },
-        });
-        if (error) throw error;
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
+      if (error) throw error;
       router.replace("/dashboard");
       router.refresh();
     } catch (e: any) {
-      setErr(e?.message ?? "Something went wrong");
+      setErr(e?.message ?? "Sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -67,52 +48,25 @@ COMPANY_ADDRESS                = Dubai Industrial City`}</pre>
   return (
     <Card>
       <CardBody className="p-6">
-        <div className="flex gap-2 mb-6 rounded-lg bg-slate-100 p-1">
-          {(["signin", "signup"] as Mode[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={`flex-1 h-9 rounded-md text-sm font-medium transition ${
-                mode === m ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-              }`}
-            >
-              {m === "signin" ? "Sign in" : "Create account"}
-            </button>
-          ))}
-        </div>
-
         <form onSubmit={submit} className="space-y-4">
-          {mode === "signup" && (
-            <>
-              <div>
-                <Label htmlFor="name">Full name</Label>
-                <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" />
-              </div>
-              <div>
-                <Label htmlFor="role">Role</Label>
-                <Select id="role" value={role} onChange={(e) => setRole(e.target.value)}>
-                  <option value="employee">Employee</option>
-                  <option value="coordinator">Project Coordinator</option>
-                  <option value="admin">Admin</option>
-                </Select>
-              </div>
-            </>
-          )}
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+            <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" />
           </div>
           <div>
             <Label htmlFor="pw">Password</Label>
-            <Input id="pw" type="password" required minLength={6} value={pw} onChange={(e) => setPw(e.target.value)} placeholder="••••••••" />
+            <Input id="pw" type="password" required minLength={6} value={pw} onChange={(e) => setPw(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
           </div>
 
           {err && <div className="rounded-md bg-rose-50 border border-rose-200 px-3 py-2 text-sm text-rose-700">{err}</div>}
 
           <Button type="submit" className="w-full bg-gradient-to-r from-violet-600 to-rose-500" disabled={loading}>
-            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+            {loading ? "Please wait…" : "Sign in"}
           </Button>
+
+          <p className="text-xs text-slate-500 text-center pt-2 border-t border-slate-100 mt-4">
+            🔒 Internal dashboard — admin access only. Coordinators &amp; employees log entries via the official SBJ WhatsApp bot.
+          </p>
         </form>
       </CardBody>
     </Card>

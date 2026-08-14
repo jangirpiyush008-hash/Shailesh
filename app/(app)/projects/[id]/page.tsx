@@ -6,6 +6,7 @@ import { KpiCard } from "@/components/kpi-card";
 import { money, shortDate } from "@/lib/utils";
 import { ArrowLeft, FileSpreadsheet, FileText, Presentation, DollarSign, TrendingUp, TrendingDown, Wallet, MessageCircle } from "lucide-react";
 import { ProjectTabs } from "./project-tabs";
+import { TeamPanel } from "./team-panel";
 import { buildWhatsAppReport, whatsAppShareUrl } from "@/lib/whatsapp-report";
 import { currentProfile } from "@/lib/permissions-server";
 import { permissions } from "@/lib/permissions";
@@ -17,14 +18,33 @@ export default async function ProjectDetail({ params }: { params: { id: string }
   const profile = await currentProfile();
   const perms = permissions(profile);
 
-  const [{ data: project }, { data: expenses }, { data: cats }, { data: activity }] = await Promise.all([
-    supabase.from("projects").select("*, coordinator:coordinator_id(full_name, email)").eq("id", params.id).single(),
+  const [{ data: project }, { data: expenses }, { data: cats }, { data: activity }, { data: team }, { data: allUsers }] = await Promise.all([
+    supabase.from("projects").select("*, coordinator:coordinator_id(id, full_name, email, role, phone_number)").eq("id", params.id).single(),
     supabase.from("expenses").select("*, added_by_p:added_by(full_name, email)").eq("project_id", params.id).order("entry_date", { ascending: true }),
     supabase.from("expense_categories").select("*").eq("is_active", true).order("side").order("sort_order"),
     supabase.from("activity_log").select("*, user:user_id(full_name, email)").eq("project_id", params.id).order("created_at", { ascending: false }).limit(30),
+    supabase.from("project_team").select("assigned_at, role, profile:user_id(id, full_name, email, role, phone_number)").eq("project_id", params.id),
+    supabase.from("profiles").select("id, full_name, email, role, phone_number").in("role", ["coordinator", "employee", "admin"]).order("full_name"),
   ]);
 
   if (!project) return notFound();
+
+  const coordinatorMember = project.coordinator ? {
+    id: (project.coordinator as any).id,
+    full_name: (project.coordinator as any).full_name,
+    email: (project.coordinator as any).email,
+    role: (project.coordinator as any).role,
+    phone_number: (project.coordinator as any).phone_number,
+  } : null;
+  const teamMembers = (team ?? []).map((t: any) => ({
+    id: t.profile?.id,
+    full_name: t.profile?.full_name,
+    email: t.profile?.email,
+    role: t.profile?.role,
+    phone_number: t.profile?.phone_number,
+    team_role: t.role,
+    assigned_at: t.assigned_at,
+  })).filter((m: any) => m.id);
 
   const E = expenses ?? [];
   const totalCost = E.reduce((s, e: any) => s + Number(e.amount ?? 0), 0);
@@ -90,6 +110,14 @@ export default async function ProjectDetail({ params }: { params: { id: string }
           <KpiCard label="Days" value={project.start_date && project.end_date ? Math.max(1, Math.ceil((new Date(project.end_date).getTime() - new Date(project.start_date).getTime()) / 86400000)) : "—"} icon={Wallet} tone="emerald" />
         </div>
       )}
+
+      <TeamPanel
+        projectId={project.id}
+        coordinator={coordinatorMember}
+        teamMembers={teamMembers}
+        availableUsers={(allUsers ?? []) as any}
+        canManage={perms.canManageUsers}
+      />
 
       <ProjectTabs
         projectId={project.id}

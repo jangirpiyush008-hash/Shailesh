@@ -15,6 +15,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .eq("id", user.id)
     .single();
 
+  // WEB DASHBOARD = ADMIN ONLY. Everyone else → 403 (and sign out on client)
+  if (profile?.role !== "admin") {
+    redirect("/403");
+  }
+
   return (
     <div className="flex min-h-screen">
       <Sidebar profile={profile} />

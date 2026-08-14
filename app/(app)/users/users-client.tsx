@@ -258,6 +258,7 @@ function UserRow({ profile, isSelf, accessLevels, permGroups, serviceKeySet, onC
 function InviteForm({ onDone }: { onDone: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("employee");
   const [level, setLevel] = useState("view");
@@ -276,14 +277,16 @@ function InviteForm({ onDone }: { onDone: () => void }) {
     e.preventDefault();
     setErr(null); setSaving(true);
     try {
+      // Normalise phone: strip everything except digits + leading +
+      const cleanPhone = phone.replace(/[^\d+]/g, "").replace(/^00/, "+");
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ full_name: name, email, password, role, access_level: level }),
+        body: JSON.stringify({ full_name: name, email, password, role, access_level: level, phone_number: cleanPhone || null }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error);
-      setName(""); setEmail(""); setPassword("");
+      setName(""); setEmail(""); setPassword(""); setPhone("");
       onDone();
     } catch (e: any) {
       setErr(e?.message ?? "Failed");
@@ -304,15 +307,20 @@ function InviteForm({ onDone }: { onDone: () => void }) {
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="jane@company.com" />
           </div>
           <div>
-            <Label>Temporary password (they can change later)</Label>
+            <Label>WhatsApp phone (with country code)</Label>
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+971 50 511 8431" />
+            <div className="text-xs text-slate-500 mt-1">📱 The number they'll message the SBJ WhatsApp bot from. Without this, they can't use WhatsApp entry.</div>
+          </div>
+          <div>
+            <Label>Temporary password {`${role === "admin" ? "(admin needs to log into web)" : "(unused — non-admins use WhatsApp)"}`}</Label>
             <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} placeholder="Min 6 characters" />
           </div>
           <div>
             <Label>Role</Label>
             <Select value={role} onChange={(e) => onRoleChange(e.target.value)}>
-              <option value="admin">Admin</option>
-              <option value="coordinator">Coordinator</option>
-              <option value="employee">Employee</option>
+              <option value="admin">Admin (web dashboard access)</option>
+              <option value="coordinator">Coordinator (WhatsApp only)</option>
+              <option value="employee">Employee (WhatsApp only)</option>
             </Select>
           </div>
           {role === "coordinator" && (

@@ -12,8 +12,8 @@ export default function LoginPage() {
             <img src="/sbj-logo.png" alt="SBJ Technical Works" className="h-14 w-auto" />
             <span className="text-[11px] uppercase tracking-widest text-slate-400 font-medium">Technical Works LLC</span>
           </div>
-          <h1 className="text-2xl font-semibold text-slate-900">Welcome back</h1>
-          <p className="text-slate-500 text-sm mt-1">Sign in to your JobCard dashboard.</p>
+          <h1 className="text-2xl font-semibold text-slate-900">Admin sign in</h1>
+          <p className="text-slate-500 text-sm mt-1">Internal dashboard for SBJ Technical Works.</p>
         </div>
         <AuthForm />
       </div>

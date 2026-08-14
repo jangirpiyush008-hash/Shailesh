@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
   const full_name = String(body.full_name || "").trim();
   const role = String(body.role || "employee");
   const access_level = String(body.access_level || (role === "employee" ? "view" : "full"));
+  const phone_number = body.phone_number ? String(body.phone_number).trim() : null;
 
   if (!email || !password || !full_name) {
     return NextResponse.json({ error: "email, password, and full_name are required" }, { status: 400 });
@@ -49,9 +50,10 @@ export async function POST(req: NextRequest) {
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  // Force the profile role + access_level (trigger uses defaults, we want to be explicit)
+  // Force the profile role + access_level + phone (trigger uses defaults, we want to be explicit)
   if (data.user) {
-    await admin.from("profiles").update({ role, access_level, full_name })
+    await admin.from("profiles")
+      .update({ role, access_level, full_name, phone_number })
       .eq("id", data.user.id);
   }
 
