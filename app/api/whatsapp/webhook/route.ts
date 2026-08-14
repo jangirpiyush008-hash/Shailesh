@@ -107,12 +107,20 @@ async function handleIncomingMessage(msg: any, ctx: any): Promise<void> {
   if (low === "menu" || low === "hi" || low === "hello" || low === "start" || low === "namaste") {
     return showMainMenu(phone, profile);
   }
-  if (low === "cancel" || low === "reset" || low === "exit") {
+  if (low === "cancel" || low === "exit") {
     await resetSession(phone);
     return reply(phone, M.cancelled(), profile.id, "cancelled");
   }
   if (low === "help" || low === "?") {
     return reply(phone, M.helpText(), profile.id, "help");
+  }
+  if (low === "reset password" || low === "change password" || low === "reset" || low === "password change") {
+    return startPasswordReset(phone, profile);
+  }
+
+  // Password-reset in progress? Check for OTP pattern in the message
+  if (session.state === "awaiting_otp_password") {
+    return handleOtpReply(phone, profile, bodyText, session);
   }
 
   // Route by interactive_id (button/list reply) or by session state
@@ -439,6 +447,44 @@ async function showRecent(phone: string, profile: any): Promise<void> {
     `${i + 1}. ${r.project?.job_card_number ?? "?"} · ${r.description} · ${r.quantity} ${r.unit ?? ""} @ ${r.unit_price} = AED ${Number(r.amount).toFixed(2)}`
   ).join("\n");
   return reply(phone, `🕒 *Recent 5:*\n\n${list}`, profile.id, "recent");
+}
+
+/* =====================================================================
+ * Password reset via OTP
+ * ===================================================================== */
+
+async function startPasswordReset(phone: string, profile: any): Promise<void> {
+  const otp = String(Math.floor(100000 + Math.random() * 900000));  // 6-digit
+  const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min TTL
+  await updateSession(phone, {
+    state: "awaiting_otp_password",
+    context: { otp, otp_expires: expires, intent: "change_password" },
+  });
+  await reply(phone, M.otpSent(otp), profile.id, "otp_sent");
+}
+
+async function handleOtpReply(phone: string, profile: any, text: string, session: WASession): Promise<void> {
+  const ctx = session.context ?? {};
+  // Expected format: "OTP:123456 newpassword"
+  const match = text.match(/OTP\s*:?\s*(\d{6})\s+(\S{6,})/i);
+  if (!match) {
+    return reply(phone, M.otpInvalid(), profile.id, "otp_invalid_format");
+  }
+  const [_, sent, newPassword] = match;
+  if (sent !== ctx.otp) return reply(phone, M.otpInvalid(), profile.id, "otp_mismatch");
+  if (new Date(ctx.otp_expires) < new Date()) return reply(phone, M.otpInvalid(), profile.id, "otp_expired");
+  if (newPassword.length < 6) return reply(phone, M.passwordTooShort(), profile.id, "otp_password_short");
+
+  // Update password via Supabase admin API
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(profile.id, { password: newPassword });
+  if (error) {
+    console.error("[wa otp] password update failed", error);
+    return reply(phone, `❌ Password update fail: ${error.message}`, profile.id, "otp_update_failed");
+  }
+
+  await resetSession(phone);
+  await reply(phone, M.passwordChanged(), profile.id, "password_changed");
 }
 
 /* -------- Small helper -------- */

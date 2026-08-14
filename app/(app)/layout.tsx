@@ -15,10 +15,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .eq("id", user.id)
     .single();
 
-  // WEB DASHBOARD = ADMIN ONLY. Everyone else → 403 (and sign out on client)
-  if (profile?.role !== "admin") {
-    redirect("/403");
-  }
+  // All roles can log in. Non-admins see a role-limited view enforced by RLS
+  // + the granular permissions system (financials hidden, no user mgmt, etc.)
+  if (!profile) redirect("/login");
 
   return (
     <div className="flex min-h-screen">

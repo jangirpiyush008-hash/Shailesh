@@ -71,23 +71,52 @@ export const M = {
   askClarify: (missing: string) =>
     `🤔 Ek detail chahiye — *${missing}*\n\nJaldi se bhej do.`,
 
+  otpSent: (otp: string) =>
+    `🔐 *Password change*\n\n` +
+    `Aapka OTP: *${otp}*\n` +
+    `(valid for 10 minutes)\n\n` +
+    `Ab apna naya password bhejo — is format mein:\n\n` +
+    `*OTP:${otp} newpassword*\n\n` +
+    `Example: _OTP:${otp} MyPass2026_\n\n` +
+    `❌ Cancel karna hai? Type: cancel`,
+
+  otpInvalid: () =>
+    `❌ OTP galat hai ya expire ho gaya.\n\n"reset password" phir se bhejo new OTP ke liye.`,
+
+  passwordTooShort: () =>
+    `⚠ Password kam se kam 6 characters ka hona chahiye.\n\nPhir se try karo: *OTP:xxxxxx newpassword*`,
+
+  passwordChanged: () =>
+    `✅ *Password changed successfully!*\n\n` +
+    `Ab web dashboard mein naye password se login kar sakte ho.\n\n` +
+    `Kuch aur karna hai? "menu" bhejo.`,
+
   helpText: () =>
     `❓ *Kaise use karein:*\n\n` +
     `1. Direct message bhejo:\n   _"JC415 material 25 sheet 18mm mdf @ 53"_\n\n` +
     `2. Ya "menu" type karo — step by step guide milega\n\n` +
     `3. Labour ke liye:\n   _"JC415 on site 12 carpenter 216 hrs @ 12"_\n\n` +
     `4. Vehicle:\n   _"JC415 3ton 2 trip @ 130"_\n\n` +
+    `*Commands:*\n` +
+    `• menu — main menu\n` +
+    `• reset password — change your password\n` +
+    `• cancel — abort current entry\n\n` +
     `Bot sab samajh leta hai — Hindi, English, mixed sab chalega 🙌`,
 
-  welcomeCoordinator: (params: { name: string; role: string; adminName?: string }) =>
+  welcomeCoordinator: (params: { name: string; role: string; email: string; password: string; loginUrl: string; adminName?: string }) =>
     `🎉 *Welcome to SBJ, ${params.name}!*\n\n` +
-    `Aapko ${params.adminName ? params.adminName + " ne " : ""}dashboard mein *${params.role === "coordinator" ? "Coordinator" : "Employee"}* ke roop mein add kar diya hai.\n\n` +
-    `📝 *Aap yahi WhatsApp pe entries log kar sakte ho.* Koi login/password ki zaroorat nahi.\n\n` +
-    `*Kaise use karein:*\n` +
-    `Bas message bhej do jaise:\n` +
-    `_"JC415 material 25 sheet 18mm mdf @ 53"_\n\n` +
-    `Ya "menu" type karo — step by step guide milega.\n\n` +
-    `Koi bhi doubt ho toh "help" bhej do.`,
+    `Aapko ${params.adminName ? params.adminName + " ne " : ""}*${params.role === "coordinator" ? "Coordinator" : "Employee"}* ke roop mein add kar diya hai.\n\n` +
+    `🔐 *Aapke credentials:*\n` +
+    `📧 Email: ${params.email}\n` +
+    `🔑 Password: \`${params.password}\`\n\n` +
+    `Do tarike se access:\n\n` +
+    `1️⃣ *Web dashboard:* ${params.loginUrl}\n` +
+    `   (email + password se login karein)\n\n` +
+    `2️⃣ *WhatsApp bot (yahi):* seedha message bhejo\n` +
+    `   Jaise: _"JC415 material 25 sheet 18mm mdf @ 53"_\n` +
+    `   Ya "menu" type karo\n\n` +
+    `⚙ Password change karna hai? Type: *reset password*\n` +
+    `❓ Help chahiye? Type: *help*`,
 
   welcomeAdmin: (params: { name: string; email: string; password: string; loginUrl: string; adminName?: string }) =>
     `🎉 *Welcome to SBJ Dashboard, ${params.name}!*\n\n` +

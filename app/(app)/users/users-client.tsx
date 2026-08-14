@@ -324,16 +324,18 @@ function InviteForm({ onDone }: { onDone: () => void }) {
             <div className="text-xs text-slate-500 mt-1">📱 The number they'll message the SBJ WhatsApp bot from. Without this, they can't use WhatsApp entry.</div>
           </div>
           <div>
-            <Label>Temporary password {`${role === "admin" ? "(admin needs to log into web)" : "(unused — non-admins use WhatsApp)"}`}</Label>
+            <Label>Temporary password</Label>
             <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} placeholder="Min 6 characters" />
+            <div className="text-xs text-slate-500 mt-1">🔑 Sent to them on WhatsApp. They can change it any time via <i>"reset password"</i> on the bot.</div>
           </div>
           <div>
             <Label>Role</Label>
             <Select value={role} onChange={(e) => onRoleChange(e.target.value)}>
-              <option value="admin">Admin (web dashboard access)</option>
-              <option value="coordinator">Coordinator (WhatsApp only)</option>
-              <option value="employee">Employee (WhatsApp only)</option>
+              <option value="admin">Admin (full access + user management)</option>
+              <option value="coordinator">Coordinator</option>
+              <option value="employee">Employee</option>
             </Select>
+            <div className="text-xs text-slate-500 mt-1">All roles can log in via web AND WhatsApp with the same credentials.</div>
           </div>
           {role === "coordinator" && (
             <div className="md:col-span-2">

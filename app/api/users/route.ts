@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     const loginUrl = process.env.NEXT_PUBLIC_APP_URL || "https://shailesh-production.up.railway.app";
     const body = role === "admin"
       ? M.welcomeAdmin({ name: full_name, email, password, loginUrl, adminName: me.full_name ?? undefined })
-      : M.welcomeCoordinator({ name: full_name, role, adminName: me.full_name ?? undefined });
+      : M.welcomeCoordinator({ name: full_name, role, email, password, loginUrl, adminName: me.full_name ?? undefined });
     const res = await sendText(phone_number, body);
     welcomeSent = !res.error;
     welcomeError = res.error ?? null;
