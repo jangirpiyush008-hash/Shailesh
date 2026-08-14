@@ -23,10 +23,9 @@ type AvailableUser = {
 };
 
 export function TeamPanel({
-  projectId, coordinator, teamMembers, availableUsers, canManage,
+  projectId, teamMembers, availableUsers, canManage,
 }: {
   projectId: string;
-  coordinator: Member | null;
   teamMembers: Member[];
   availableUsers: AvailableUser[];
   canManage: boolean;
@@ -36,8 +35,8 @@ export function TeamPanel({
   const [selectedUser, setSelectedUser] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Filter out users already on the team + the coordinator
-  const takenIds = new Set([coordinator?.id, ...teamMembers.map((m) => m.id)].filter(Boolean));
+  // Only filter out users already ADDED to the team
+  const takenIds = new Set(teamMembers.map((m) => m.id));
   const pickable = availableUsers.filter((u) => !takenIds.has(u.id));
 
   async function addMember() {
@@ -72,13 +71,11 @@ export function TeamPanel({
     } finally { setBusy(false); }
   }
 
-  const totalCount = (coordinator ? 1 : 0) + teamMembers.length;
-
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between gap-2">
         <CardTitle className="flex items-center gap-2">
-          <Users size={16} className="text-violet-600" /> Team ({totalCount})
+          <Users size={16} className="text-violet-600" /> Team ({teamMembers.length})
         </CardTitle>
         {canManage && (
           <Button size="sm" variant={adding ? "outline" : "default"} onClick={() => setAdding((v) => !v)}>
@@ -103,29 +100,21 @@ export function TeamPanel({
           </div>
         )}
 
-        {coordinator && (
-          <MemberRow
-            m={coordinator}
-            badgeLabel="Coordinator"
-            badgeVariant="info"
-            canRemove={false}
-            onRemove={() => {}}
-          />
-        )}
         {teamMembers.map((m) => (
           <MemberRow
             key={m.id}
             m={m}
-            badgeLabel={m.role === "employee" ? "Employee" : "Coordinator"}
-            badgeVariant={m.role === "employee" ? "outline" : "info"}
+            badgeLabel={m.role === "employee" ? "Employee" : m.role === "coordinator" ? "Coordinator" : "Admin"}
+            badgeVariant={m.role === "employee" ? "outline" : m.role === "admin" ? "success" : "info"}
             canRemove={canManage}
             onRemove={() => removeMember(m.id)}
           />
         ))}
 
-        {totalCount === 0 && !adding && (
-          <div className="text-center text-sm text-slate-500 py-4">
-            No one assigned. {canManage && <button onClick={() => setAdding(true)} className="text-violet-600 hover:underline">Add someone</button>}
+        {teamMembers.length === 0 && !adding && (
+          <div className="text-center text-sm text-slate-500 py-8">
+            <Users size={32} className="mx-auto text-slate-300 mb-2" />
+            No one assigned yet. {canManage && <button onClick={() => setAdding(true)} className="text-violet-600 hover:underline font-medium">Add someone</button>}
           </div>
         )}
       </CardBody>

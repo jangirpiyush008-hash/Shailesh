@@ -111,20 +111,20 @@ export default async function ProjectDetail({ params }: { params: { id: string }
         </div>
       )}
 
-      <TeamPanel
-        projectId={project.id}
-        coordinator={coordinatorMember}
-        teamMembers={teamMembers}
-        availableUsers={(allUsers ?? []) as any}
-        canManage={perms.canManageUsers}
-      />
-
       <ProjectTabs
         projectId={project.id}
         expenses={E}
         categories={cats ?? []}
         instructions={project.instructions ?? ""}
         activity={activity ?? []}
+        teamPanel={
+          <TeamPanel
+            projectId={project.id}
+            teamMembers={teamMembers}
+            availableUsers={(allUsers ?? []) as any}
+            canManage={perms.canManageUsers}
+          />
+        }
         perms={{
           canSeeLinePrices:  perms.canSeeLinePrices,
           canSeeTotals:      perms.canSeeTotals,

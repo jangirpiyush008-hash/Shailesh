@@ -17,6 +17,7 @@ const ALL_TABS = [
   { id: "documents",label: "Documents" },
   { id: "timeline", label: "Timeline" },
   { id: "reports",  label: "Reports" },
+  { id: "team",     label: "Team" },
 ] as const;
 
 export type ExpensePerms = {
@@ -29,7 +30,7 @@ export type ExpensePerms = {
 };
 
 export function ProjectTabs({
-  projectId, expenses, categories, instructions, activity, perms,
+  projectId, expenses, categories, instructions, activity, perms, teamPanel,
 }: {
   projectId: string;
   expenses: Exp[];
@@ -38,10 +39,12 @@ export function ProjectTabs({
   activity: any[];
   header: any;
   perms: ExpensePerms;
+  teamPanel?: React.ReactNode;
 }) {
   const TABS = ALL_TABS.filter((t) => {
     if (t.id === "overview" && !perms.canSeeOverviewTab) return false;
     if (t.id === "reports"  && !perms.canSeeReportsTab)  return false;
+    if (t.id === "team"     && !teamPanel)               return false;
     return true;
   });
   const [tab, setTab] = useState<typeof ALL_TABS[number]["id"]>(TABS[0].id);
@@ -73,6 +76,7 @@ export function ProjectTabs({
       {tab === "documents" && <DocumentsTab projectId={projectId} />}
       {tab === "timeline" && <TimelineTab activity={activity} />}
       {tab === "reports" && perms.canSeeReportsTab && <ReportsTab expenses={expenses} categories={categories} />}
+      {tab === "team" && teamPanel}
     </div>
   );
 }
