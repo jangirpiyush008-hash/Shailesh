@@ -9,12 +9,12 @@ export function isSupabaseConfigured(): boolean {
 }
 
 export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Strip whitespace defensively — copy-paste often introduces stray spaces
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\s+/g, "");
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim().replace(/\s+/g, "");
   if (!url || !key) {
-    // Don't throw during React render — throw only when someone actually
-    // tries to call auth/db methods. Callers should use isSupabaseConfigured()
-    // to check first if they need to render a "setup required" UI.
+    // Don't throw during React render — return a null-cast so callers using
+    // isSupabaseConfigured() can render a "setup required" UI instead
     return null as unknown as ReturnType<typeof createBrowserClient>;
   }
   return createBrowserClient(url, key);

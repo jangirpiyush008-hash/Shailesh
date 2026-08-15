@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
   const role = String(body.role || "employee");
   const access_level = String(body.access_level || (role === "employee" ? "view" : "full"));
   const phone_number = body.phone_number ? String(body.phone_number).trim() : null;
+  const permissions_overrides = body.permissions_overrides && typeof body.permissions_overrides === "object"
+    ? body.permissions_overrides : {};
 
   if (!email || !password || !full_name) {
     return NextResponse.json({ error: "email, password, and full_name are required" }, { status: 400 });
@@ -44,6 +46,42 @@ export async function POST(req: NextRequest) {
   try { admin = createAdminClient(); }
   catch (e: any) { return NextResponse.json({ error: e.message }, { status: 500 }); }
 
+  // ------ Duplicate checks BEFORE creating the auth user ------
+  // Email uniqueness — Supabase auth also enforces this, but check first for a friendly error
+  const { data: existingByEmail } = await admin
+    .from("profiles").select("id, full_name, email")
+    .eq("email", email).maybeSingle();
+  if (existingByEmail) {
+    return NextResponse.json({
+      error: `A user with email "${email}" already exists (${existingByEmail.full_name ?? "no name"}). Pick a different email.`,
+      code: "duplicate_email",
+    }, { status: 409 });
+  }
+  // Phone uniqueness (only if phone provided)
+  if (phone_number) {
+    const { data: existingByPhone } = await admin
+      .from("profiles").select("id, full_name, email, phone_number")
+      .eq("phone_number", phone_number).maybeSingle();
+    if (existingByPhone) {
+      return NextResponse.json({
+        error: `Phone number "${phone_number}" is already assigned to ${existingByPhone.full_name ?? existingByPhone.email}. Use a different number.`,
+        code: "duplicate_phone",
+      }, { status: 409 });
+    }
+  }
+
+  // Only keep known permission override keys with boolean values
+  const ALLOWED_PERMS = new Set([
+    "canSeeRevenue","canSeeProfit","canSeeTotals","canSeeLinePrices",
+    "canSeeOverviewTab","canSeeReportsTab","canExportExcel","canGenerateReport",
+    "canCreateProject","canEditProject","canDeleteProject",
+    "canAddExpense","canEnterPrice","canDeleteExpense","canManageUsers",
+  ]);
+  const cleanOverrides: Record<string, boolean> = {};
+  for (const [k, v] of Object.entries(permissions_overrides)) {
+    if (ALLOWED_PERMS.has(k) && typeof v === "boolean") cleanOverrides[k] = v;
+  }
+
   // Create the auth user (the on_auth_user_created trigger creates a profile row automatically)
   const { data, error } = await admin.auth.admin.createUser({
     email,
@@ -51,12 +89,18 @@ export async function POST(req: NextRequest) {
     email_confirm: true,
     user_metadata: { full_name, role },
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    // Supabase's own duplicate-detection as a safety net
+    const msg = /already been registered|duplicate/i.test(error.message)
+      ? `A user with email "${email}" already exists.`
+      : error.message;
+    return NextResponse.json({ error: msg, code: "auth_create_failed" }, { status: 400 });
+  }
 
-  // Force the profile role + access_level + phone (trigger uses defaults, we want to be explicit)
+  // Force the profile role + access_level + phone + overrides
   if (data.user) {
     await admin.from("profiles")
-      .update({ role, access_level, full_name, phone_number })
+      .update({ role, access_level, full_name, phone_number, permissions_overrides: cleanOverrides })
       .eq("id", data.user.id);
   }
 
