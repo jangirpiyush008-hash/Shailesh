@@ -60,37 +60,18 @@ export async function POST(req: NextRequest) {
       .eq("id", data.user.id);
   }
 
-  // 📱 Send WhatsApp welcome message if we have a phone number and WhatsApp is configured
-  let welcomeSent = false;
-  let welcomeError: string | null = null;
-  if (phone_number && isWhatsAppConfigured()) {
-    const loginUrl = process.env.NEXT_PUBLIC_APP_URL || "https://shailesh-production.up.railway.app";
-    const body = role === "admin"
-      ? M.welcomeAdmin({ name: full_name, email, password, loginUrl, adminName: me.full_name ?? undefined })
-      : M.welcomeCoordinator({ name: full_name, role, email, password, loginUrl, adminName: me.full_name ?? undefined });
-    const res = await sendText(phone_number, body);
-    welcomeSent = !res.error;
-    welcomeError = res.error ?? null;
-    await logMessage({
-      direction: "outbound",
-      phone_number,
-      profile_id: data.user?.id ?? null,
-      wa_message_id: res.id,
-      body,
-      parsed_intent: "welcome_message",
-      meta: { role, sent_by_admin: me.id, error: res.error },
-    });
-  }
-
+  // We do NOT auto-send the welcome message.
+  // Admin is presented with a follow-up step in the UI to send credentials on WhatsApp.
   return NextResponse.json({
     ok: true,
     id: data.user?.id,
     email,
-    welcome_sent: welcomeSent,
-    welcome_error: welcomeError,
-    // Explain to the UI if WhatsApp isn't set up yet
-    welcome_note: !isWhatsAppConfigured()
-      ? "WhatsApp not yet configured — welcome message skipped. User created successfully."
-      : (phone_number ? undefined : "No phone number provided — user won't be able to use the WhatsApp bot until you add one."),
+    phone_number,
+    role,
+    full_name,
+    // Pass the password back to the UI ONLY for the ephemeral "send credentials" dialog
+    // (never persisted — the UI drops it as soon as admin closes the dialog)
+    temp_password: password,
+    whatsapp_configured: isWhatsAppConfigured(),
   });
 }

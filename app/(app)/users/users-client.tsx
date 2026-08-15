@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardBody, CardHeader, CardTitle, Button, Input, Label, Select, Badge } from "@/components/ui";
 import { shortDate, cn } from "@/lib/utils";
 import { permissions as computePerms, type PermKey } from "@/lib/permissions";
-import { Plus, Trash2, Save, UserPlus, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Save, UserPlus, ChevronDown, ChevronUp, MessageCircle, Check, Copy, X } from "lucide-react";
 
 type Profile = {
   id: string;
@@ -265,6 +265,12 @@ function InviteForm({ onDone }: { onDone: () => void }) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // Step 2 state — shown after user is created, before form closes
+  const [created, setCreated] = useState<null | {
+    id: string; email: string; phone_number: string | null; role: string;
+    full_name: string; temp_password: string; whatsapp_configured: boolean;
+  }>(null);
+
   // Auto-adjust default access level when role changes
   function onRoleChange(v: string) {
     setRole(v);
@@ -287,22 +293,24 @@ function InviteForm({ onDone }: { onDone: () => void }) {
       const j = await res.json();
       if (!res.ok) throw new Error(j.error);
 
-      // Show welcome-message status to the admin
-      if (j.welcome_sent) {
-        alert(`✅ User created + WhatsApp welcome message sent to ${cleanPhone}`);
-      } else if (j.welcome_error) {
-        alert(`✅ User created — but WhatsApp welcome failed: ${j.welcome_error}\n\nCheck the phone number and try messaging them manually.`);
-      } else if (j.welcome_note) {
-        alert(`✅ User created.\n\nℹ ${j.welcome_note}`);
-      } else {
-        alert(`✅ User created.`);
-      }
-
-      setName(""); setEmail(""); setPassword(""); setPhone("");
-      onDone();
+      // User created. Show step-2 dialog: "send credentials on WhatsApp?"
+      setCreated({
+        id: j.id, email: j.email, phone_number: j.phone_number, role: j.role,
+        full_name: j.full_name, temp_password: j.temp_password,
+        whatsapp_configured: j.whatsapp_configured,
+      });
     } catch (e: any) {
       setErr(e?.message ?? "Failed");
     } finally { setSaving(false); }
+  }
+
+  // -------- Step 2: created, ask about sending credentials --------
+  if (created) {
+    return <CredentialsStep created={created} onFinish={() => {
+      setCreated(null);
+      setName(""); setEmail(""); setPassword(""); setPhone("");
+      onDone();
+    }} />;
   }
 
   return (
@@ -355,6 +363,111 @@ function InviteForm({ onDone }: { onDone: () => void }) {
             </Button>
           </div>
         </form>
+      </CardBody>
+    </Card>
+  );
+}
+
+/* -------------------- CredentialsStep — post-create dialog -------------------- */
+function CredentialsStep({ created, onFinish }: {
+  created: {
+    id: string; email: string; phone_number: string | null; role: string;
+    full_name: string; temp_password: string; whatsapp_configured: boolean;
+  };
+  onFinish: () => void;
+}) {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function sendCredentials() {
+    setSending(true); setErr(null);
+    try {
+      const res = await fetch(`/api/users/${created.id}/send-credentials`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: created.temp_password }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error);
+      setSent(true);
+    } catch (e: any) {
+      setErr(e?.message ?? "Send failed");
+    } finally { setSending(false); }
+  }
+
+  async function copyCredentials() {
+    const text = `SBJ Dashboard access\nEmail: ${created.email}\nPassword: ${created.temp_password}\nWeb: https://shailesh-production.up.railway.app\nWhatsApp bot: +971 50 511 8431`;
+    try { await navigator.clipboard.writeText(text); alert("Copied to clipboard"); }
+    catch { alert(text); }
+  }
+
+  const canSend = !!created.phone_number && created.whatsapp_configured && !sent;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Check size={18} className="text-emerald-600" /> User created — {created.full_name}
+        </CardTitle>
+      </CardHeader>
+      <CardBody className="space-y-4">
+        <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 space-y-1 text-sm">
+          <div><b>Email:</b> {created.email}</div>
+          <div><b>Password:</b> <code className="bg-white px-2 py-0.5 rounded border border-slate-200">{created.temp_password}</code></div>
+          <div><b>Phone:</b> {created.phone_number || <span className="text-amber-600">— none —</span>}</div>
+          <div><b>Role:</b> {created.role}</div>
+        </div>
+
+        {/* Send-credentials block */}
+        {sent ? (
+          <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 flex items-center gap-3">
+            <Check size={18} className="text-emerald-600 shrink-0" />
+            <div className="text-sm text-emerald-900">
+              <b>Credentials sent!</b> WhatsApp message delivered to <code>{created.phone_number}</code>. They can login now.
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
+            <div className="flex items-start gap-3 mb-3">
+              <MessageCircle size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+              <div className="text-sm text-emerald-900">
+                <div className="font-semibold mb-0.5">Send credentials on WhatsApp?</div>
+                <div className="text-emerald-800">
+                  {created.phone_number ? (
+                    <>They'll get a welcome message on <b>{created.phone_number}</b> with their email, password, web login URL, and quick start guide.</>
+                  ) : (
+                    <>⚠ No phone number saved for this user — can't send via WhatsApp. Add one via inline edit, or use "Copy credentials" below.</>
+                  )}
+                  {!created.whatsapp_configured && created.phone_number && (
+                    <><br/>⚠ WhatsApp API not configured on Railway yet. Copy credentials manually for now.</>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {err && <div className="mb-3 rounded-md bg-rose-50 border border-rose-200 px-3 py-2 text-sm text-rose-700">{err}</div>}
+
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                onClick={sendCredentials}
+                disabled={!canSend || sending}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white"
+              >
+                {sending ? "Sending…" : <><MessageCircle size={14} /> Send on WhatsApp</>}
+              </Button>
+              <Button variant="outline" onClick={copyCredentials}>
+                <Copy size={14} /> Copy credentials
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end pt-2 border-t border-slate-200">
+          <Button variant="outline" onClick={onFinish}>
+            {sent ? <><Check size={14} /> Done</> : <><X size={14} /> Close without sending</>}
+          </Button>
+        </div>
       </CardBody>
     </Card>
   );
